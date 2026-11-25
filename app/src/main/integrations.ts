@@ -5,16 +5,17 @@ import { app } from 'electron';
 import type { IntegrationActionResult, IntegrationInfo } from '../shared/types';
 
 const HOME = os.homedir();
-const RUNTIME_ROOT = path.join(HOME, '.ai-pet');
+const RUNTIME_ROOT = path.join(HOME, '.vibepet');
 const SCRIPTS_DIR = path.join(RUNTIME_ROOT, 'scripts');
 const BIN_DIR = path.join(RUNTIME_ROOT, 'bin');
-const RUNNER_BIN = path.join(BIN_DIR, 'ai-pet-node');
+const RUNNER_BIN = path.join(BIN_DIR, 'vibepet-node');
 
 const MCP_SCRIPT = path.join(SCRIPTS_DIR, 'mcp-server.mjs');
 const AGY_HOOK_SCRIPT = path.join(SCRIPTS_DIR, 'agy-hook.mjs');
 const AGENT_HOOK_SCRIPT = path.join(SCRIPTS_DIR, 'agent-hook.mjs');
 
-const HOOK_MARKER = '.ai-pet/scripts/';
+const HOOK_MARKER = '.vibepet/scripts/';
+const LEGACY_HOOK_MARKER = '.ai-pet/scripts/';
 const MD_START = '<!-- ai-desktop-pet:start -->';
 const MD_END = '<!-- ai-desktop-pet:end -->';
 const TOML_START = '# >>> ai-desktop-pet >>>';
@@ -118,6 +119,7 @@ function isAiPetHookCommand(cmd: unknown): boolean {
   if (typeof cmd !== 'string') return false;
   return (
     cmd.includes(HOOK_MARKER) ||
+    cmd.includes(LEGACY_HOOK_MARKER) ||
     cmd.includes('agy-hook.mjs') ||
     cmd.includes('pet-hook.mjs') ||
     cmd.includes('agent-hook.mjs')
@@ -156,6 +158,9 @@ done
 APP_BIN="${execPathEscaped}"
 if [ -x "$APP_BIN" ]; then
   exec env ELECTRON_RUN_AS_NODE=1 "$APP_BIN" "$@"
+fi
+if [ -x "/Applications/VibePet.app/Contents/MacOS/VibePet" ]; then
+  exec env ELECTRON_RUN_AS_NODE=1 "/Applications/VibePet.app/Contents/MacOS/VibePet" "$@"
 fi
 if [ -x "/Applications/AI Pet.app/Contents/MacOS/AI Pet" ]; then
   exec env ELECTRON_RUN_AS_NODE=1 "/Applications/AI Pet.app/Contents/MacOS/AI Pet" "$@"

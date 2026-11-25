@@ -17,7 +17,7 @@ export function openSetupWindow(): BrowserWindow {
     minimizable: false,
     maximizable: false,
     fullscreenable: false,
-    title: 'AI Desktop Pet — Setup & Integrations',
+    title: 'VibePet — Setup & Integrations',
     titleBarStyle: 'hiddenInset',
     vibrancy: 'under-window',
     visualEffectState: 'active',

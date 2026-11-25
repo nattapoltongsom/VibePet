@@ -1,17 +1,17 @@
-# AI Desktop Pet
+# VibePet
 
-**A free, open-source macOS floating companion that shows what your AI coding agent is thinking, running, or waiting for you to approve — across Antigravity, VS Code, OpenAI Codex, and Claude Code.**
+**A free, open-source macOS floating companion that shows what your AI coding agent is thinking, running, using which model, or waiting for you to approve — across Antigravity, VS Code, OpenAI Codex, and Claude Code.**
 
-No more tab-switching back to your IDE every 10 seconds to check if your AI agent finished running tests or paused on an approval prompt. Just download the `.dmg`, open **AI Pet**, pick your buddy (**Cat**, **Robot**, or **Dog**), and grant one-click permission to auto-connect your installed AI tools.
+No more tab-switching back to your IDE every 10 seconds to check if your AI agent finished running tests or paused on an approval prompt. Just download the `.dmg`, open **VibePet**, pick your buddy (**Cat**, **Robot**, or **Dog**), and grant one-click permission to auto-connect your installed AI tools.
 
 ---
 
-## Why AI Desktop Pet?
+## Why VibePet?
 
 When running autonomous AI coding agents, you often switch to a browser, docs, or Slack while the agent reads files, runs tests, or builds your app. Without ambient visibility, you only notice 5 minutes later that the agent has been sitting on an **Approve** prompt the entire time.
 
-**AI Desktop Pet** solves this locally and privately:
-- **Zero-Config `.dmg` Install** — Download `AI Pet.dmg` from GitHub Releases, drag to `/Applications`, and launch. No `git clone`, no `npm install`, no manual JSON editing.
+**VibePet** solves this locally and privately:
+- **Zero-Config `.dmg` Install** — Download `VibePet.dmg` from GitHub Releases, drag to `/Applications`, and launch. No `git clone`, no `npm install`, no manual JSON editing.
 - **Consent-First Auto-Connect** — Automatically detects installed IDEs/agents on your Mac and asks your explicit permission before safely adding only its own hook/MCP entries (and lets you disconnect anytime in 1 click).
 - **3 Switchable Companions** — Choose between **Cat**, **Robot**, and **Dog** anytime from the Menu Bar or hover settings; both the floating SVG pet and the macOS Menu Bar icon update live.
 - **Live Thoughts, Active Model & Approval Alerts** — Displays the active IDE badge, project name, **active AI model** (`⚡ gpt-5.5`, `⚡ claude-sonnet-4`, `⚡ gemini-3-pro`), headline status, a `💭` thought/command detail box, and a 6-step **Recent Activity** log in the macOS Menu Bar.
@@ -34,10 +34,10 @@ When running autonomous AI coding agents, you often switch to a browser, docs, o
 
 ## Quick Start (For End Users — No Code Required)
 
-1. Download the latest **`AI Pet-*.dmg`** from [**GitHub Releases**](../../releases).
-2. Open the `.dmg` and drag **AI Pet.app** into your **Applications** folder.
-3. Launch **AI Pet** from Spotlight or Applications.
-   > *First-time macOS note:* Because this free open-source release is unsigned, if macOS says the app is from an unidentified developer, right-click `AI Pet.app` → **Open** (or allow it in *System Settings → Privacy & Security*).
+1. Download the latest **`VibePet-*.dmg`** from [**GitHub Releases**](../../releases).
+2. Open the `.dmg` and drag **VibePet.app** into your **Applications** folder.
+3. Launch **VibePet** from Spotlight or Applications.
+   > *First-time macOS note:* Because this free open-source release is unsigned, if macOS says the app is from an unidentified developer, right-click `VibePet.app` → **Open** (or allow it in *System Settings → Privacy & Security*).
 4. In the **Setup & Integrations** dialog:
    - Pick your favorite companion (**Cat**, **Robot**, or **Dog**).
    - Review the detected AI tools and click **Allow & Connect Selected**.
@@ -68,14 +68,14 @@ flowchart LR
     D["VS Code Copilot"]
   end
 
-  subgraph Runtime["~/.ai-pet/ (Staged automatically on consent)"]
-    R["ai-pet-node<br/>(Uses Node or Electron runtime)"]
+  subgraph Runtime["~/.vibepet/ (Staged automatically on consent)"]
+    R["vibepet-node<br/>(Uses Node or Electron runtime)"]
     H1["agy-hook.mjs"]
     H2["agent-hook.mjs"]
     M["mcp-server.mjs<br/>(Zero-dep Stdio MCP)"]
   end
 
-  subgraph App["AI Pet.app (Electron macOS)"]
+  subgraph App["VibePet.app (Electron macOS)"]
     HTTP["Local HTTP Server<br/>127.0.0.1:4567/status"]
     MAIN["Main Process<br/>(Store + Tray + Integrations)"]
     PET["Floating Pet Window<br/>(Cat / Robot / Dog SVG + Web Audio)"]
@@ -95,7 +95,7 @@ flowchart LR
 ### Repository Layout
 
 ```text
-AI-Desktop-Pet/
+VibePet/
 ├── .github/workflows/release.yml   # Automated TypeScript check + macOS .dmg GitHub Release
 ├── app/                            # Strict TypeScript Electron macOS App
 │   ├── src/

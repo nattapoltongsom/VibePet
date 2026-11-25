@@ -1,9 +1,9 @@
 {
-  "name": "ai-desktop-pet",
+  "name": "vibepet",
   "version": "2.0.0",
-  "description": "Free open-source macOS floating AI companion (TypeScript + Electron) that shows live agent thoughts, active model, coding progress, and approval alerts across Antigravity, VS Code, Codex, and Claude Code.",
+  "description": "VibePet — Free open-source macOS floating AI companion (TypeScript + Electron) that shows live agent thoughts, active model, coding progress, and approval alerts.",
   "main": "dist-js/main/index.js",
-  "author": "AI Desktop Pet Contributors",
+  "author": "VibePet Contributors",
   "license": "MIT",
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.renderer.json --noEmit && tsc -p ../integrations/tsconfig.json --noEmit",
@@ -21,8 +21,8 @@
     "typescript": "^5.8.3"
   },
   "build": {
-    "appId": "com.aidev.ai-desktop-pet",
-    "productName": "AI Pet",
+    "appId": "com.vibepet.app",
+    "productName": "VibePet",
     "directories": {
       "buildResources": "build",
       "output": "dist"
@@ -65,7 +65,7 @@
       ]
     },
     "dmg": {
-      "title": "AI Pet",
+      "title": "VibePet",
       "contents": [
         {
           "x": 130,

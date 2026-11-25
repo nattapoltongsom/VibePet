@@ -222,9 +222,9 @@
     applyStatus(
       {
         state: 'idle',
-        message: 'AI Pet is ready!',
+        message: 'VibePet is ready!',
         detail: 'Drag me anywhere or click the gear icon to switch characters & connect IDEs.',
-        source: 'ai-pet',
+        source: 'vibepet',
       },
       { playSound: false }
     );

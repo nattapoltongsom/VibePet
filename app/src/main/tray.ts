@@ -113,7 +113,7 @@ export function createTrayManager(actions: TrayActions): TrayManager {
 
     if (prefs.showTrayTitle) {
       if (status.state === 'idle' && !shortMsg) {
-        tray.setTitle(' AI Pet');
+        tray.setTitle(' VibePet');
       } else {
         const detail = shortMsg || meta.label;
         tray.setTitle(` ${meta.icon} ${sourceShort}${detail}`);
@@ -127,7 +127,7 @@ export function createTrayManager(actions: TrayActions): TrayManager {
     const projectLine = status.project ? `\nProject: ${status.project}` : '';
     const msgLine = status.message ? `\n${status.message}` : '';
     const thoughtLine = status.detail ? `\nThought: ${status.detail}` : '';
-    tray.setToolTip(`AI Desktop Pet — ${meta.label}${fullSource}${modelLine}${projectLine}${msgLine}${thoughtLine}`);
+    tray.setToolTip(`VibePet — ${meta.label}${fullSource}${modelLine}${projectLine}${msgLine}${thoughtLine}`);
 
     const menuMsg = truncateGraphemes(status.message, 44);
     const statusLine = menuMsg
@@ -272,7 +272,7 @@ export function createTrayManager(actions: TrayActions): TrayManager {
       },
       { type: 'separator' },
       {
-        label: 'Quit AI Pet',
+        label: 'Quit VibePet',
         click: () => actions.quit(),
       },
     ]);
