@@ -65,6 +65,10 @@ export function createPetWindow(opts: {
   win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   win.setIgnoreMouseEvents(true, { forward: true });
 
+  win.once('ready-to-show', () => {
+    win.showInactive();
+  });
+
   win.loadFile(path.join(__dirname, '../renderer/pet/index.html'));
 
   win.on('closed', () => {

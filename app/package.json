@@ -23,6 +23,7 @@
   "build": {
     "appId": "com.vibepet.app",
     "productName": "VibePet",
+    "afterPack": "scripts/adhoc-sign.cjs",
     "directories": {
       "buildResources": "build",
       "output": "dist"

@@ -37,7 +37,11 @@ When running autonomous AI coding agents, you often switch to a browser, docs, o
 1. Download the latest **`VibePet-*.dmg`** from [**GitHub Releases**](../../releases).
 2. Open the `.dmg` and drag **VibePet.app** into your **Applications** folder.
 3. Launch **VibePet** from Spotlight or Applications.
-   > *First-time macOS note:* Because this free open-source release is unsigned, if macOS says the app is from an unidentified developer, right-click `VibePet.app` → **Open** (or allow it in *System Settings → Privacy & Security*).
+   > *First-time macOS note:* Because this free open-source release is ad-hoc signed (no paid Apple Developer certificate), if macOS blocks opening a `.dmg` downloaded from GitHub, run once in Terminal:
+   > ```bash
+   > xattr -cr "/Applications/VibePet.app"
+   > ```
+   > Then open **VibePet** normally from Applications or Spotlight.
 4. In the **Setup & Integrations** dialog:
    - Pick your favorite companion (**Cat**, **Robot**, or **Dog**).
    - Review the detected AI tools and click **Allow & Connect Selected**.
