@@ -61,16 +61,6 @@ function createTrayImage(character: CharacterType) {
   return icon;
 }
 
-function formatSourceShort(source: string): string {
-  const lower = (source || '').trim().toLowerCase();
-  if (!lower) return '';
-  if (lower.includes('antigravity') || lower === 'agy') return '[AGY] ';
-  if (lower.includes('claude')) return '[CC] ';
-  if (lower.includes('codex')) return '[CX] ';
-  if (lower.includes('vscode') || lower.includes('vs code') || lower === 'code') return '[VS] ';
-  return `[${source.trim().slice(0, 8)}] `;
-}
-
 function truncateGraphemes(text: string, maxGraphemes = 26): string {
   const clean = (text || '').replace(/\s+/g, ' ').trim();
   if (!clean) return '';
@@ -108,51 +98,53 @@ export function createTrayManager(actions: TrayActions): TrayManager {
     if (!tray) return;
 
     const meta = STATE_META[status.state] || STATE_META.idle;
-    const sourceShort = formatSourceShort(status.source);
     const shortMsg = truncateGraphemes(status.message, 26);
+    const activeCount = status.tasks?.length || 0;
 
     if (prefs.showTrayTitle) {
       if (status.state === 'idle' && !shortMsg) {
         tray.setTitle(' VibePet');
       } else {
         const detail = shortMsg || meta.label;
-        tray.setTitle(` ${meta.icon} ${sourceShort}${detail}`);
+        const countPrefix = activeCount > 1 ? `(${activeCount}) ` : '';
+        tray.setTitle(` ${meta.icon} ${countPrefix}${detail}`);
       }
     } else {
       tray.setTitle('');
     }
 
-    const fullSource = status.source ? ` (${status.source})` : '';
-    const modelLine = status.model ? `\nModel: ${status.model}` : '';
-    const projectLine = status.project ? `\nProject: ${status.project}` : '';
+    const modelLine = status.model ? `\n⚡ ${status.model}` : '';
     const msgLine = status.message ? `\n${status.message}` : '';
-    const thoughtLine = status.detail ? `\nThought: ${status.detail}` : '';
-    tray.setToolTip(`VibePet — ${meta.label}${fullSource}${modelLine}${projectLine}${msgLine}${thoughtLine}`);
+    tray.setToolTip(`VibePet — ${meta.label}${modelLine}${msgLine}`);
 
-    const menuMsg = truncateGraphemes(status.message, 44);
-    const statusLine = menuMsg
-      ? `${meta.icon} ${meta.label}${fullSource}: ${menuMsg}`
-      : `${meta.icon} ${meta.label}${fullSource}`;
-
-    const headerItems: MenuItemConstructorOptions[] = [{ label: statusLine, enabled: false }];
-    if (status.model) {
-      headerItems.push({ label: `⚡ Model: ${truncateGraphemes(status.model, 40)}`, enabled: false });
-    }
-    if (status.project) {
-      headerItems.push({ label: `📁 Project: ${truncateGraphemes(status.project, 40)}`, enabled: false });
-    }
-    if (status.detail) {
-      headerItems.push({ label: `💭 ${truncateGraphemes(status.detail, 54)}`, enabled: false });
+    const headerItems: MenuItemConstructorOptions[] = [];
+    if (status.tasks && status.tasks.length > 1) {
+      headerItems.push({ label: `Active Tasks (${status.tasks.length})`, enabled: false });
+      for (const task of status.tasks) {
+        const tMeta = STATE_META[task.state] || STATE_META.idle;
+        const tModel = task.model ? `[${truncateGraphemes(task.model, 18)}] ` : '';
+        headerItems.push({
+          label: `${tMeta.icon} ${tModel}${truncateGraphemes(task.message, 42)}`,
+          enabled: false,
+        });
+      }
+    } else {
+      const menuMsg = truncateGraphemes(status.message, 44);
+      const statusLine = menuMsg ? `${meta.icon} ${meta.label}: ${menuMsg}` : `${meta.icon} ${meta.label}`;
+      headerItems.push({ label: statusLine, enabled: false });
+      if (status.model) {
+        headerItems.push({ label: `⚡ ${truncateGraphemes(status.model, 40)}`, enabled: false });
+      }
     }
 
     const historySubmenu: MenuItemConstructorOptions[] =
       history.length > 0
         ? history.map((item) => {
             const itemMeta = STATE_META[item.state] || STATE_META.idle;
-            const proj = item.project ? `[${item.project}] ` : '';
-            const summary = truncateGraphemes(item.detail ? `${item.message} — ${item.detail}` : item.message, 58);
+            const modelPrefix = item.model ? `[${truncateGraphemes(item.model, 16)}] ` : '';
+            const summary = truncateGraphemes(item.message, 52);
             return {
-              label: `${item.time} ${itemMeta.icon} ${proj}${summary}`,
+              label: `${item.time} ${itemMeta.icon} ${modelPrefix}${summary}`,
               enabled: false,
             };
           })
@@ -216,8 +208,7 @@ export function createTrayManager(actions: TrayActions): TrayManager {
               actions.previewStatus({
                 state: 'idle',
                 message: 'Ready whenever you are!',
-                detail: 'Listening on localhost:4567 for IDE events.',
-                source: 'antigravity',
+                sessionId: 'preview',
               }),
           },
           {
@@ -226,10 +217,8 @@ export function createTrayManager(actions: TrayActions): TrayManager {
               actions.previewStatus({
                 state: 'thinking',
                 message: 'Analyzing authentication flow...',
-                detail: 'Inspecting token refresh logic and session handlers.',
-                project: 'my-app',
                 model: 'gemini-3-pro',
-                source: 'antigravity',
+                sessionId: 'preview',
               }),
           },
           {
@@ -238,10 +227,8 @@ export function createTrayManager(actions: TrayActions): TrayManager {
               actions.previewStatus({
                 state: 'coding',
                 message: 'Editing App.tsx',
-                detail: 'Implementing responsive layout and unit tests.',
-                project: 'my-app',
                 model: 'gpt-5.5',
-                source: 'codex',
+                sessionId: 'preview',
               }),
           },
           {
@@ -249,11 +236,9 @@ export function createTrayManager(actions: TrayActions): TrayManager {
             click: () =>
               actions.previewStatus({
                 state: 'waiting',
-                message: 'Approval needed in IDE!',
-                detail: 'Command: npm run build (waiting for your confirmation)',
-                project: 'my-app',
+                message: 'Approval needed!',
                 model: 'claude-sonnet-4',
-                source: 'claude-code',
+                sessionId: 'preview',
               }),
           },
           {
@@ -262,10 +247,8 @@ export function createTrayManager(actions: TrayActions): TrayManager {
               actions.previewStatus({
                 state: 'success',
                 message: 'All tests passed!',
-                detail: 'Build completed cleanly with zero warnings.',
-                project: 'my-app',
                 model: 'gpt-5.5',
-                source: 'codex',
+                sessionId: 'preview',
               }),
           },
         ],

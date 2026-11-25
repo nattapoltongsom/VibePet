@@ -11,21 +11,17 @@
     <!-- Speech Bubble -->
     <div class="bubble-slot">
       <div id="speech-bubble" class="speech-bubble interactive" title="Click to dismiss">
-        <div class="bubble-header">
-          <div class="bubble-meta">
-            <span id="source-badge" class="source-badge antigravity">✦ Antigravity</span>
-            <span id="project-badge" class="project-badge"></span>
+        <div id="single-task-view">
+          <div class="bubble-header">
+            <span id="model-badge" class="model-badge"></span>
+            <span class="state-pill">
+              <span class="state-dot"></span>
+              <span id="state-label">READY</span>
+            </span>
           </div>
-          <span class="state-pill">
-            <span class="state-dot"></span>
-            <span id="state-label">READY</span>
-          </span>
+          <p id="bubble-text" class="bubble-text"></p>
         </div>
-        <div id="model-row" class="model-row">
-          <span id="model-badge" class="model-badge"></span>
-        </div>
-        <p id="bubble-text" class="bubble-text"></p>
-        <p id="bubble-thought" class="bubble-thought"></p>
+        <div id="task-list" class="task-list"></div>
       </div>
     </div>
 

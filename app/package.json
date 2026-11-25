@@ -23,6 +23,10 @@
   "build": {
     "appId": "com.vibepet.app",
     "productName": "VibePet",
+    "compression": "maximum",
+    "electronLanguages": [
+      "en"
+    ],
     "afterPack": "scripts/adhoc-sign.cjs",
     "directories": {
       "buildResources": "build",
@@ -56,17 +60,12 @@
           "arch": [
             "arm64"
           ]
-        },
-        {
-          "target": "dir",
-          "arch": [
-            "arm64"
-          ]
         }
       ]
     },
     "dmg": {
       "title": "VibePet",
+      "format": "ULFO",
       "contents": [
         {
           "x": 130,

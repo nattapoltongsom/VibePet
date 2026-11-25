@@ -73,6 +73,12 @@ export function createHttpServer({ getStatus, onStatusUpdate }: HttpServerDeps):
             project: typeof parsed.project === 'string' ? parsed.project : '',
             model: typeof parsed.model === 'string' ? parsed.model : typeof parsed.modelName === 'string' ? parsed.modelName : '',
             source: typeof parsed.source === 'string' ? parsed.source : '',
+            sessionId:
+              typeof parsed.sessionId === 'string'
+                ? parsed.sessionId
+                : typeof parsed.session_id === 'string'
+                  ? parsed.session_id
+                  : '',
           });
 
           res.writeHead(200);

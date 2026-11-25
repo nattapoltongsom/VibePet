@@ -16,6 +16,8 @@ const TIMEOUT_MS = 1200;
 interface AgentHookPayload {
   hook_event_name?: string;
   event?: string;
+  session_id?: string;
+  conversation_id?: string;
   tool_name?: string;
   tool?: string;
   tool_input?: Record<string, unknown>;
@@ -24,18 +26,14 @@ interface AgentHookPayload {
   model?: string;
   model_name?: string;
   modelName?: string;
-  prompt?: string;
-  user_prompt?: string;
   title?: string;
   message?: string;
-  reason?: string;
   last_assistant_message?: string;
 }
 
 interface MappedStatus {
   state: 'idle' | 'thinking' | 'coding' | 'waiting' | 'success';
   message: string;
-  detail: string;
   project: string;
 }
 
@@ -67,6 +65,14 @@ function extractProject(payload: AgentHookPayload): string {
   const dir = payload.cwd || '';
   if (!dir || typeof dir !== 'string') return '';
   return compact(path.basename(dir.replace(/\/+$/, '')), 32);
+}
+
+function extractSessionId(payload: AgentHookPayload): string {
+  const raw = payload.session_id || payload.conversation_id || payload.cwd || '';
+  if (typeof raw === 'string' && raw.trim()) {
+    return `${DEFAULT_SOURCE}:${raw.trim().slice(-64)}`;
+  }
+  return `${DEFAULT_SOURCE}:default`;
 }
 
 function extractCommand(input: Record<string, unknown>): string {
@@ -116,14 +122,12 @@ function mapHookToStatus(payload: AgentHookPayload): MappedStatus | null {
 
   if (event === 'PermissionRequest') {
     const cmd = extractCommand(toolInput);
-    const { base, rel } = extractFileInfo(toolInput, cwd);
-    const reason = compact(toolInput.description || payload.reason || '', 80);
+    const { base } = extractFileInfo(toolInput, cwd);
 
     if (cmd) {
       return {
         state: 'waiting',
-        message: `Approve needed: ${compact(cmd, 28)}`,
-        detail: reason ? `${reason} -> ${cmd}` : `Command: ${cmd}`,
+        message: `Approve: ${compact(cmd, 28)}`,
         project,
       };
     }
@@ -131,40 +135,34 @@ function mapHookToStatus(payload: AgentHookPayload): MappedStatus | null {
       return {
         state: 'waiting',
         message: `Approve edit: ${base}`,
-        detail: reason ? `${reason} (${rel})` : `File: ${rel}`,
         project,
       };
     }
     return {
       state: 'waiting',
       message: toolName ? `Approval needed (${compact(toolName, 20)})` : 'Approval needed!',
-      detail: reason || 'Waiting for your confirmation to continue.',
       project,
     };
   }
 
   if (event === 'UserPromptSubmit') {
-    const promptText = compact(payload.prompt || payload.user_prompt || payload.message || '', 130);
     return {
       state: 'thinking',
-      message: 'Analyzing your request...',
-      detail: promptText ? `Task: ${promptText}` : 'Planning next steps...',
+      message: 'Analyzing request...',
       project,
     };
   }
 
   if (event === 'PreToolUse') {
     const cmd = extractCommand(toolInput);
-    const { base, rel } = extractFileInfo(toolInput, cwd);
+    const { base } = extractFileInfo(toolInput, cwd);
     const query = extractQuery(toolInput);
-    const desc = compact(toolInput.description || '', 80);
 
     const isShell = /bash|shell|exec|command|terminal|run/.test(toolLower) || Boolean(cmd);
     if (isShell) {
       return {
         state: 'coding',
-        message: cmd ? `Running: ${compact(cmd, 26)}` : 'Running terminal command...',
-        detail: desc ? `${desc} -> ${cmd}` : cmd ? `Command: ${cmd}` : 'Executing command',
+        message: cmd ? `Running: ${compact(cmd, 28)}` : 'Running command...',
         project,
       };
     }
@@ -174,45 +172,38 @@ function mapHookToStatus(payload: AgentHookPayload): MappedStatus | null {
       return {
         state: 'coding',
         message: base ? `Editing ${base}` : 'Writing code...',
-        detail: desc || (rel ? `File: ${rel}` : 'Updating project files'),
         project,
       };
     }
 
     return {
       state: 'thinking',
-      message: base ? `Reading ${base}` : query ? `Searching: ${compact(query, 24)}` : 'Inspecting codebase...',
-      detail: query ? `Query: "${query}"` : rel ? `File: ${rel}` : desc,
+      message: base ? `Reading ${base}` : query ? 'Searching codebase...' : 'Inspecting codebase...',
       project,
     };
   }
 
   if (event === 'Notification') {
     const title = compact(payload.title || '', 44);
-    const msg = compact(payload.message || '', 140);
     return {
       state: 'waiting',
       message: title || 'Needs your attention!',
-      detail: msg || 'Waiting for your response.',
       project,
     };
   }
 
   if (event === 'Stop') {
     const lastMsg = String(payload.last_assistant_message || payload.message || '').trim();
-    const preview = compact(lastMsg.replace(/[#*`>_]+/g, ' '), 140);
     if (looksLikeQuestion(lastMsg)) {
       return {
         state: 'waiting',
-        message: 'Question waiting for your reply!',
-        detail: preview,
+        message: 'Question waiting for reply!',
         project,
       };
     }
     return {
       state: 'success',
       message: 'All done!',
-      detail: preview,
       project,
     };
   }
@@ -258,10 +249,11 @@ async function main(): Promise<void> {
       body: JSON.stringify({
         state: mapped.state,
         message: mapped.message,
-        detail: mapped.detail || '',
+        detail: '',
         project: mapped.project || '',
         model: extractModel(payload),
         source: DEFAULT_SOURCE,
+        sessionId: extractSessionId(payload),
       }),
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });

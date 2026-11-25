@@ -46,6 +46,15 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
+          body: |
+            ### macOS Installation Note (Free Open-Source Build)
+            Because VibePet is free & open-source without a paid Apple Developer ID certificate, macOS Gatekeeper may show **"VibePet is damaged and can't be opened. You should move it to the Trash."** after downloading from a browser.
+
+            After dragging `VibePet.app` into `/Applications`, run once in Terminal:
+            ```bash
+            xattr -cr "/Applications/VibePet.app"
+            ```
+            Then launch **VibePet** normally from Applications or Spotlight.
           files: |
             app/dist/*.dmg
             app/dist/*.dmg.blockmap

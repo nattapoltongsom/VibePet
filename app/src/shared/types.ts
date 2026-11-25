@@ -24,6 +24,16 @@ export interface PetStatusInput {
   model?: string;
   modelName?: string;
   source?: string;
+  sessionId?: string;
+}
+
+export interface ActiveTask {
+  id: string;
+  state: PetState;
+  message: string;
+  model: string;
+  project: string;
+  updatedAt: string;
 }
 
 export interface PetStatus {
@@ -34,6 +44,7 @@ export interface PetStatus {
   model: string;
   source: string;
   updatedAt: string;
+  tasks: ActiveTask[];
 }
 
 export interface ActivityItem {

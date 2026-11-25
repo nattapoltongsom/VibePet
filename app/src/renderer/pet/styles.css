@@ -93,83 +93,11 @@ html, body {
   margin-bottom: 5px;
 }
 
-.bubble-meta {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  min-width: 0;
-}
-
-.source-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 7px;
-  border-radius: 999px;
-  font-size: 9.5px;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  line-height: 1.3;
-  color: #ffffff;
-  background: rgba(148, 163, 184, 0.32);
-  white-space: nowrap;
-}
-
-.source-badge.antigravity {
-  background: linear-gradient(135deg, #6366f1 0%, #06b6d4 100%);
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35);
-}
-
-.source-badge.vscode {
-  background: linear-gradient(135deg, #007acc 0%, #38bdf8 100%);
-  box-shadow: 0 2px 8px rgba(0, 122, 204, 0.35);
-}
-
-.source-badge.codex {
-  background: linear-gradient(135deg, #10a37f 0%, #14b8a6 100%);
-  box-shadow: 0 2px 8px rgba(16, 163, 127, 0.35);
-}
-
-.source-badge.claude {
-  background: linear-gradient(135deg, #d97757 0%, #f59e0b 100%);
-  box-shadow: 0 2px 8px rgba(217, 119, 87, 0.35);
-}
-
-.project-badge {
-  display: none;
-  align-items: center;
-  max-width: 112px;
-  padding: 2px 6px;
-  border-radius: 999px;
-  font-size: 9.5px;
-  font-weight: 600;
-  color: #cbd5e1;
-  background: rgba(148, 163, 184, 0.18);
-  border: 1px solid rgba(148, 163, 184, 0.22);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.project-badge.visible {
-  display: inline-flex;
-}
-
-.model-row {
-  display: none;
-  margin-bottom: 5px;
-}
-
-.model-row.visible {
-  display: flex;
-}
-
 .model-badge {
-  display: inline-flex;
+  display: none;
   align-items: center;
   gap: 3px;
-  max-width: 100%;
+  max-width: 195px;
   padding: 1.5px 7px;
   border-radius: 6px;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -183,10 +111,15 @@ html, body {
   text-overflow: ellipsis;
 }
 
+.model-badge.visible {
+  display: inline-flex;
+}
+
 .state-pill {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  margin-left: auto;
   font-size: 9.5px;
   font-weight: 700;
   color: rgba(226, 232, 240, 0.78);
@@ -204,33 +137,84 @@ html, body {
 .bubble-text {
   margin: 0;
   font-size: 13px;
-  line-height: 1.4;
+  line-height: 1.38;
   font-weight: 600;
   color: #f8fafc;
   word-break: break-word;
   text-align: left;
-}
-
-.bubble-thought {
-  margin: 6px 0 0;
-  padding: 5px 8px;
-  border-radius: 9px;
-  background: rgba(255, 255, 255, 0.07);
-  border-left: 2.5px solid var(--primary);
-  font-size: 11.3px;
-  line-height: 1.42;
-  font-weight: 400;
-  color: rgba(226, 232, 240, 0.9);
-  word-break: break-word;
-  text-align: left;
   overflow: hidden;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
 }
 
-.bubble-thought:not(.visible) {
+.task-list {
   display: none;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.task-list.visible {
+  display: flex;
+}
+
+.task-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.task-row:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.task-row-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.task-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.task-dot.idle { background: #7dd3fc; box-shadow: 0 0 6px #7dd3fc; }
+.task-dot.thinking { background: #c084fc; box-shadow: 0 0 6px #c084fc; }
+.task-dot.coding { background: #34d399; box-shadow: 0 0 6px #34d399; }
+.task-dot.waiting { background: #fbbf24; box-shadow: 0 0 6px #fbbf24; }
+.task-dot.success { background: #4ade80; box-shadow: 0 0 6px #4ade80; }
+
+.task-model {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 9.5px;
+  font-weight: 600;
+  color: #bae6fd;
+  background: rgba(56, 189, 248, 0.14);
+  border: 1px solid rgba(56, 189, 248, 0.24);
+  border-radius: 5px;
+  padding: 0.5px 5px;
+  max-width: 170px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.task-msg {
+  font-size: 12px;
+  line-height: 1.32;
+  font-weight: 600;
+  color: #f8fafc;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-left: 12px;
 }
 
 body[data-state="waiting"] .speech-bubble.visible {

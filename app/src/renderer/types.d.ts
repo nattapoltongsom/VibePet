@@ -1,6 +1,15 @@
 type RendererPetState = 'idle' | 'thinking' | 'coding' | 'waiting' | 'success';
 type RendererCharacterType = 'cat' | 'robot' | 'dog';
 
+interface RendererActiveTask {
+  id: string;
+  state: RendererPetState;
+  message: string;
+  model: string;
+  project: string;
+  updatedAt: string;
+}
+
 interface RendererPetStatus {
   state?: RendererPetState;
   message?: string;
@@ -9,6 +18,7 @@ interface RendererPetStatus {
   project?: string;
   model?: string;
   source?: string;
+  tasks?: RendererActiveTask[];
 }
 
 interface RendererIntegrationInfo {

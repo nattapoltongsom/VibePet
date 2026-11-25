@@ -3,11 +3,9 @@
   const body = document.body;
 
   const bubbleEl = document.getElementById('speech-bubble') as HTMLElement;
+  const singleTaskViewEl = document.getElementById('single-task-view') as HTMLElement;
+  const taskListEl = document.getElementById('task-list') as HTMLElement;
   const bubbleTextEl = document.getElementById('bubble-text') as HTMLElement;
-  const bubbleThoughtEl = document.getElementById('bubble-thought') as HTMLElement;
-  const sourceBadgeEl = document.getElementById('source-badge') as HTMLElement;
-  const projectBadgeEl = document.getElementById('project-badge') as HTMLElement;
-  const modelRowEl = document.getElementById('model-row') as HTMLElement;
   const modelBadgeEl = document.getElementById('model-badge') as HTMLElement;
   const stateLabelEl = document.getElementById('state-label') as HTMLElement;
   const petZoneEl = document.getElementById('pet-zone') as HTMLElement;
@@ -46,34 +44,6 @@
     muteBtn.title = isMuted ? 'Unmute sound' : 'Mute sound';
   }
 
-  function updateSourceBadge(source?: string): void {
-    const raw = (source || '').trim();
-    const lower = raw.toLowerCase();
-
-    sourceBadgeEl.className = 'source-badge';
-    if (!raw) {
-      sourceBadgeEl.style.display = 'none';
-      return;
-    }
-
-    sourceBadgeEl.style.display = 'inline-flex';
-    if (lower.includes('antigravity') || lower === 'agy') {
-      sourceBadgeEl.classList.add('antigravity');
-      sourceBadgeEl.textContent = '✦ Antigravity';
-    } else if (lower.includes('claude')) {
-      sourceBadgeEl.classList.add('claude');
-      sourceBadgeEl.textContent = '✳ Claude Code';
-    } else if (lower.includes('codex')) {
-      sourceBadgeEl.classList.add('codex');
-      sourceBadgeEl.textContent = '◎ Codex';
-    } else if (lower.includes('vscode') || lower.includes('vs code') || lower === 'code') {
-      sourceBadgeEl.classList.add('vscode');
-      sourceBadgeEl.textContent = '⌘ VS Code';
-    } else {
-      sourceBadgeEl.textContent = `● ${raw}`;
-    }
-  }
-
   function hideBubble(): void {
     bubbleEl.classList.remove('visible');
   }
@@ -82,6 +52,38 @@
     if (hideBubbleTimer !== null) {
       window.clearTimeout(hideBubbleTimer);
       hideBubbleTimer = null;
+    }
+  }
+
+  function renderMultiTasks(tasks: RendererActiveTask[]): void {
+    taskListEl.innerHTML = '';
+    for (const task of tasks) {
+      const row = document.createElement('div');
+      row.className = 'task-row';
+
+      const top = document.createElement('div');
+      top.className = 'task-row-top';
+
+      const dot = document.createElement('span');
+      const taskState: RendererPetState = task.state in STATE_LABELS ? task.state : 'idle';
+      dot.className = `task-dot ${taskState}`;
+      top.appendChild(dot);
+
+      if (task.model) {
+        const modelEl = document.createElement('span');
+        modelEl.className = 'task-model';
+        modelEl.textContent = `⚡ ${task.model}`;
+        top.appendChild(modelEl);
+      }
+
+      row.appendChild(top);
+
+      const msgEl = document.createElement('div');
+      msgEl.className = 'task-msg';
+      msgEl.textContent = task.message || STATE_LABELS[taskState];
+      row.appendChild(msgEl);
+
+      taskListEl.appendChild(row);
     }
   }
 
@@ -94,48 +96,41 @@
     body.setAttribute('data-state', validState);
     stateLabelEl.textContent = STATE_LABELS[validState];
 
-    updateSourceBadge(payload.source);
+    const tasks = Array.isArray(payload.tasks) ? payload.tasks : [];
 
-    const trimmedProject = (payload.project || '').trim();
-    if (trimmedProject) {
-      projectBadgeEl.textContent = trimmedProject;
-      projectBadgeEl.classList.add('visible');
-    } else {
-      projectBadgeEl.textContent = '';
-      projectBadgeEl.classList.remove('visible');
-    }
-
-    const trimmedModel = (payload.model || '').trim();
-    if (trimmedModel) {
-      modelBadgeEl.textContent = `⚡ ${trimmedModel}`;
-      modelRowEl.classList.add('visible');
-    } else {
-      modelBadgeEl.textContent = '';
-      modelRowEl.classList.remove('visible');
-    }
-
-    const trimmedMsg = (payload.message || '').trim();
-    const trimmedDetail = (payload.detail || payload.thought || '').trim();
-
-    if (trimmedMsg || trimmedDetail) {
-      bubbleTextEl.textContent = trimmedMsg || STATE_LABELS[validState];
-      if (trimmedDetail) {
-        bubbleThoughtEl.textContent = `💭 ${trimmedDetail}`;
-        bubbleThoughtEl.classList.add('visible');
-      } else {
-        bubbleThoughtEl.textContent = '';
-        bubbleThoughtEl.classList.remove('visible');
-      }
+    if (tasks.length > 1) {
+      singleTaskViewEl.style.display = 'none';
+      renderMultiTasks(tasks);
+      taskListEl.classList.add('visible');
       bubbleEl.classList.add('visible');
     } else {
-      hideBubble();
+      taskListEl.classList.remove('visible');
+      taskListEl.innerHTML = '';
+      singleTaskViewEl.style.display = 'block';
+
+      const trimmedModel = (payload.model || '').trim();
+      if (trimmedModel) {
+        modelBadgeEl.textContent = `⚡ ${trimmedModel}`;
+        modelBadgeEl.classList.add('visible');
+      } else {
+        modelBadgeEl.textContent = '';
+        modelBadgeEl.classList.remove('visible');
+      }
+
+      const trimmedMsg = (payload.message || '').trim();
+      if (trimmedMsg) {
+        bubbleTextEl.textContent = trimmedMsg;
+        bubbleEl.classList.add('visible');
+      } else {
+        hideBubble();
+      }
     }
 
     if (playSound) {
       PetAudio.playStateSound(validState, isMuted);
     }
 
-    if (validState === 'idle' && (trimmedMsg || trimmedDetail)) {
+    if (validState === 'idle' && (payload.message || '').trim()) {
       hideBubbleTimer = window.setTimeout(hideBubble, 6000);
     }
   }
@@ -223,8 +218,6 @@
       {
         state: 'idle',
         message: 'VibePet is ready!',
-        detail: 'Drag me anywhere or click the gear icon to switch characters & connect IDEs.',
-        source: 'vibepet',
       },
       { playSound: false }
     );

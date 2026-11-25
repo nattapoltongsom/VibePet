@@ -1,6 +1,6 @@
 import { app, ipcMain, type BrowserWindow } from 'electron';
 import type http from 'http';
-import type { ActivityItem, CharacterType, PetStatus, PetStatusInput, Preferences } from '../shared/types';
+import type { ActiveTask, ActivityItem, CharacterType, PetState, PetStatus, PetStatusInput, Preferences } from '../shared/types';
 import { loadPreferences, savePreferences } from './store';
 import { isValidState, createHttpServer } from './httpServer';
 import { STATE_META, createTrayManager } from './tray';
@@ -14,13 +14,25 @@ import {
 } from './integrations';
 
 const SUCCESS_AUTO_IDLE_MS = 10000;
+const IDLE_MESSAGE_CLEAR_MS = 6000;
+const STALE_TASK_MS = 10 * 60 * 1000;
+const MAX_VISIBLE_TASKS = 4;
 const MAX_HISTORY_ITEMS = 6;
+
+const STATE_PRIORITY: Record<PetState, number> = {
+  waiting: 4,
+  coding: 3,
+  thinking: 2,
+  success: 1,
+  idle: 0,
+};
 
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 
 let petWindow: BrowserWindow | null = null;
 let httpServer: http.Server | null = null;
-let autoIdleTimer: NodeJS.Timeout | null = null;
+const activeTasks = new Map<string, ActiveTask>();
+const taskTimers = new Map<string, NodeJS.Timeout>();
 const activityHistory: ActivityItem[] = [];
 
 let currentStatus: PetStatus = {
@@ -31,6 +43,7 @@ let currentStatus: PetStatus = {
   model: '',
   source: '',
   updatedAt: new Date().toISOString(),
+  tasks: [],
 };
 
 const gotLock = app.requestSingleInstanceLock();
@@ -50,11 +63,71 @@ function formatTimeHM(date: Date): string {
   return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
 }
 
-function clearAutoIdleTimer(): void {
-  if (autoIdleTimer) {
-    clearTimeout(autoIdleTimer);
-    autoIdleTimer = null;
+function clearTaskTimer(taskKey: string): void {
+  const existing = taskTimers.get(taskKey);
+  if (existing) {
+    clearTimeout(existing);
+    taskTimers.delete(taskKey);
   }
+}
+
+function clearAllTaskTimers(): void {
+  for (const timer of taskTimers.values()) {
+    clearTimeout(timer);
+  }
+  taskTimers.clear();
+}
+
+function buildAggregateStatus(now: Date): PetStatus {
+  const sorted = Array.from(activeTasks.values()).sort((a, b) => {
+    const prioDiff = STATE_PRIORITY[b.state] - STATE_PRIORITY[a.state];
+    if (prioDiff !== 0) return prioDiff;
+    return b.updatedAt.localeCompare(a.updatedAt);
+  });
+
+  if (sorted.length === 0) {
+    return {
+      state: 'idle',
+      message: '',
+      detail: '',
+      project: '',
+      model: '',
+      source: '',
+      updatedAt: now.toISOString(),
+      tasks: [],
+    };
+  }
+
+  const primary = sorted[0];
+  return {
+    state: primary.state,
+    message: primary.message,
+    detail: '',
+    project: primary.project,
+    model: primary.model,
+    source: '',
+    updatedAt: primary.updatedAt,
+    tasks: sorted.slice(0, MAX_VISIBLE_TASKS),
+  };
+}
+
+function broadcastStatus(): void {
+  trayManager.update({
+    status: currentStatus,
+    history: activityHistory,
+    prefs: loadPreferences(),
+  });
+
+  if (petWindow && !petWindow.isDestroyed()) {
+    petWindow.webContents.send('pet:status-update', currentStatus);
+  }
+}
+
+function removeTask(taskKey: string): void {
+  clearTaskTimer(taskKey);
+  if (!activeTasks.delete(taskKey)) return;
+  currentStatus = buildAggregateStatus(new Date());
+  broadcastStatus();
 }
 
 const trayManager = createTrayManager({
@@ -99,65 +172,75 @@ function toggleMute(): Preferences {
 function pushStatus({
   state,
   message = '',
-  detail = '',
-  thought = '',
   project = '',
   model = '',
   modelName = '',
   source = '',
+  sessionId = '',
 }: PetStatusInput): PetStatus {
-  clearAutoIdleTimer();
-
   const safeState = isValidState(state) ? state : 'idle';
-  const safeMessage = typeof message === 'string' ? message.trim().slice(0, 160) : '';
-  const rawDetail = typeof detail === 'string' && detail.trim() ? detail : typeof thought === 'string' ? thought : '';
-  const safeDetail = rawDetail.replace(/\s+/g, ' ').trim().slice(0, 240);
+  const safeMessage = typeof message === 'string' ? message.replace(/\s+/g, ' ').trim().slice(0, 140) : '';
   const safeProject = typeof project === 'string' ? project.trim().slice(0, 40) : '';
   const rawModel = typeof model === 'string' && model.trim() ? model : typeof modelName === 'string' ? modelName : '';
   const safeModel = rawModel.trim().slice(0, 48);
   const safeSource = typeof source === 'string' ? source.trim().slice(0, 32) : '';
+  const safeSessionId = typeof sessionId === 'string' ? sessionId.trim().slice(0, 80) : '';
 
+  const taskKey = safeSessionId || (safeProject ? `project:${safeProject}` : safeSource ? `source:${safeSource}` : 'default');
   const now = new Date();
-  currentStatus = {
-    state: safeState,
-    message: safeMessage,
-    detail: safeDetail,
-    project: safeProject,
-    model: safeModel,
-    source: safeSource,
-    updatedAt: now.toISOString(),
-  };
 
-  if (safeMessage || safeDetail) {
+  clearTaskTimer(taskKey);
+
+  if (safeState === 'idle' && !safeMessage) {
+    activeTasks.delete(taskKey);
+  } else {
+    const prev = activeTasks.get(taskKey);
+    const resolvedModel = safeModel || prev?.model || '';
+    const resolvedProject = safeProject || prev?.project || '';
+    const resolvedMessage = safeMessage || STATE_META[safeState].label;
+
+    activeTasks.set(taskKey, {
+      id: taskKey,
+      state: safeState,
+      message: resolvedMessage,
+      model: resolvedModel,
+      project: resolvedProject,
+      updatedAt: now.toISOString(),
+    });
+
+    if (safeState === 'success') {
+      taskTimers.set(
+        taskKey,
+        setTimeout(() => removeTask(taskKey), SUCCESS_AUTO_IDLE_MS)
+      );
+    } else if (safeState === 'idle') {
+      taskTimers.set(
+        taskKey,
+        setTimeout(() => removeTask(taskKey), IDLE_MESSAGE_CLEAR_MS)
+      );
+    } else if (safeState !== 'waiting') {
+      taskTimers.set(
+        taskKey,
+        setTimeout(() => removeTask(taskKey), STALE_TASK_MS)
+      );
+    }
+
     activityHistory.unshift({
       time: formatTimeHM(now),
       state: safeState,
-      message: safeMessage || STATE_META[safeState].label,
-      detail: safeDetail,
-      project: safeProject,
-      model: safeModel,
-      source: safeSource,
+      message: resolvedMessage,
+      detail: '',
+      project: resolvedProject,
+      model: resolvedModel,
+      source: '',
     });
     if (activityHistory.length > MAX_HISTORY_ITEMS) {
       activityHistory.length = MAX_HISTORY_ITEMS;
     }
   }
 
-  trayManager.update({
-    status: currentStatus,
-    history: activityHistory,
-    prefs: loadPreferences(),
-  });
-
-  if (petWindow && !petWindow.isDestroyed()) {
-    petWindow.webContents.send('pet:status-update', currentStatus);
-  }
-
-  if (safeState === 'success') {
-    autoIdleTimer = setTimeout(() => {
-      pushStatus({ state: 'idle', message: '', detail: '', project: '', model: '', source: '' });
-    }, SUCCESS_AUTO_IDLE_MS);
-  }
+  currentStatus = buildAggregateStatus(now);
+  broadcastStatus();
 
   return currentStatus;
 }
@@ -268,7 +351,7 @@ app.whenReady().then(() => {
 });
 
 app.on('before-quit', () => {
-  clearAutoIdleTimer();
+  clearAllTaskTimers();
   if (httpServer) {
     try {
       httpServer.close();
