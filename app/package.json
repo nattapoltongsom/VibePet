@@ -54,28 +54,13 @@
       "icon": "build/icon.png",
       "hardenedRuntime": false,
       "gatekeeperAssess": false,
+      "artifactName": "VibePet-${arch}.${ext}",
       "target": [
         {
-          "target": "dmg",
+          "target": "zip",
           "arch": [
             "arm64"
           ]
-        }
-      ]
-    },
-    "dmg": {
-      "title": "VibePet",
-      "format": "ULFO",
-      "contents": [
-        {
-          "x": 130,
-          "y": 220
-        },
-        {
-          "x": 410,
-          "y": 220,
-          "type": "link",
-          "path": "/Applications"
         }
       ]
     }

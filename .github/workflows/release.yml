@@ -1,4 +1,4 @@
-name: Release macOS DMG
+name: Release macOS App
 
 on:
   push:
@@ -35,26 +35,22 @@ jobs:
         working-directory: app
         run: npm run generate:icon
 
-      - name: Build macOS .app and .dmg
+      - name: Build macOS .app archive
         working-directory: app
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
         run: npm run build:mac
 
-      - name: Create GitHub Release with DMG
+      - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
           body: |
-            ### macOS Installation Note (Free Open-Source Build)
-            Because VibePet is free & open-source without a paid Apple Developer ID certificate, macOS Gatekeeper may show **"VibePet is damaged and can't be opened. You should move it to the Trash."** after downloading from a browser.
-
-            After dragging `VibePet.app` into `/Applications`, run once in Terminal:
+            ### Quick Install (macOS Apple Silicon — Free & Open Source)
+            Run this one-line command in Terminal (no Gatekeeper warning):
             ```bash
-            xattr -cr "/Applications/VibePet.app"
+            curl -fsSL https://raw.githubusercontent.com/nattapoltongsom/VibePet/main/install.sh | bash
             ```
-            Then launch **VibePet** normally from Applications or Spotlight.
           files: |
-            app/dist/*.dmg
-            app/dist/*.dmg.blockmap
+            app/dist/VibePet-arm64.zip
