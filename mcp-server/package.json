@@ -1,0 +1,17 @@
+{
+  "name": "ai-desktop-pet-mcp-server",
+  "version": "1.0.0",
+  "description": "Universal MCP Server (Stdio) for AI Desktop Pet — works with Antigravity, VS Code, and any MCP-compatible AI client",
+  "type": "module",
+  "main": "index.js",
+  "bin": {
+    "ai-pet-mcp": "./index.js"
+  },
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "zod": "^3.24.2"
+  }
+}

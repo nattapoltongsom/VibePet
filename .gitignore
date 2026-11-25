@@ -1,0 +1,13 @@
+# Dependencies
+node_modules/
+
+# Electron build outputs
+app/dist/
+app/out/
+
+# OS & Editor files
+.DS_Store
+*.log
+npm-debug.log*
+.env
+.env.local

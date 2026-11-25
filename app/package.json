@@ -1,0 +1,79 @@
+{
+  "name": "ai-desktop-pet",
+  "version": "2.0.0",
+  "description": "Free open-source macOS floating AI companion that shows live agent thoughts, coding progress, and approval alerts across Antigravity, VS Code, Codex, and Claude Code.",
+  "main": "src/main/index.js",
+  "author": "AI Desktop Pet Contributors",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "generate:icon": "node scripts/generate-icon.mjs",
+    "build:mac": "electron-builder --mac",
+    "build:mac:dir": "electron-builder --mac dir"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "electron": "^35.1.5",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.aidev.ai-desktop-pet",
+    "productName": "AI Pet",
+    "directories": {
+      "buildResources": "build",
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../integrations",
+        "to": "integrations",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "../skills/pet-companion/SKILL.md",
+        "to": "skills/pet-companion/SKILL.md"
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "icon": "build/icon.png",
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false,
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        },
+        {
+          "target": "dir",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ]
+    },
+    "dmg": {
+      "title": "AI Pet",
+      "contents": [
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
+    }
+  }
+}
