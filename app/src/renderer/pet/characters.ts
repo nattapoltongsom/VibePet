@@ -1,6 +1,5 @@
 /**
  * Modular SVG mascot definitions for Cat, Robot, and Dog characters.
- * Each character shares the same 5 animation layers (idle, thinking, coding, waiting, success).
  */
 (() => {
   const SHARED_LAPTOP_LAYER = `
@@ -41,7 +40,7 @@
     </g>
   `;
 
-  function wrapSvg(label, rigContent) {
+  function wrapSvg(label: string, rigContent: string): string {
     return `
       <svg class="pet-svg" viewBox="0 0 180 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${label}">
         <defs>
@@ -68,7 +67,7 @@
     `;
   }
 
-  const CHARACTERS = {
+  const CHARACTERS: Record<RendererCharacterType, string> = {
     cat: wrapSvg(
       'AI Desktop Cat',
       `
@@ -224,20 +223,16 @@
     dog: wrapSvg(
       'AI Desktop Dog',
       `
-        <!-- Happy Wagging Tail -->
         <g class="pet-tail">
           <path class="pet-tail-stroke" d="M118 106 Q146 96 144 76" fill="none" stroke-width="11" stroke-linecap="round" />
           <circle class="pet-accent-fill" cx="144" cy="76" r="4.8" opacity="0.95" />
         </g>
-        <!-- Chubby Puppy Body -->
         <ellipse class="pet-body-fill" cx="90" cy="102" rx="34" ry="26" />
         <ellipse class="pet-accent-fill" cx="90" cy="107" rx="20" ry="16" opacity="0.95" />
-        <!-- Little Paws/Feet -->
         <ellipse class="pet-body-shade" cx="72" cy="123" rx="10" ry="6.5" />
         <ellipse class="pet-body-shade" cx="108" cy="123" rx="10" ry="6.5" />
         <ellipse class="pet-accent-fill" cx="72" cy="124" rx="5.5" ry="3.2" opacity="0.9" />
         <ellipse class="pet-accent-fill" cx="108" cy="124" rx="5.5" ry="3.2" opacity="0.9" />
-        <!-- Arms -->
         <g class="arm-left">
           <ellipse class="pet-body-fill" cx="55" cy="98" rx="9.5" ry="11.5" transform="rotate(24 55 98)" stroke="#1e293b" stroke-opacity="0.1" stroke-width="1.2" />
           <circle class="pet-ear-inner" cx="53" cy="102" r="3" opacity="0.8" />
@@ -246,34 +241,27 @@
           <ellipse class="pet-body-fill" cx="125" cy="98" rx="9.5" ry="11.5" transform="rotate(-24 125 98)" stroke="#1e293b" stroke-opacity="0.1" stroke-width="1.2" />
           <circle class="pet-ear-inner" cx="127" cy="102" r="3" opacity="0.8" />
         </g>
-        <!-- Collar & Gold Bone Tag -->
         <path class="pet-collar-fill" d="M64 89 Q90 98 116 89 L114 95 Q90 104 66 95 Z" />
         <rect x="84" y="95" width="12" height="5" rx="2.5" fill="#fde047" stroke="#ca8a04" stroke-width="1.1" />
         <circle cx="84.5" cy="96" r="2.2" fill="#fde047" stroke="#ca8a04" stroke-width="0.9" />
         <circle cx="84.5" cy="99" r="2.2" fill="#fde047" stroke="#ca8a04" stroke-width="0.9" />
         <circle cx="95.5" cy="96" r="2.2" fill="#fde047" stroke="#ca8a04" stroke-width="0.9" />
         <circle cx="95.5" cy="99" r="2.2" fill="#fde047" stroke="#ca8a04" stroke-width="0.9" />
-        <!-- Floppy Cute Puppy Ears -->
         <g class="ear-left">
           <ellipse class="pet-body-shade" cx="47" cy="64" rx="13" ry="24" transform="rotate(22 47 64)" />
         </g>
         <g class="ear-right">
           <ellipse class="pet-body-shade" cx="133" cy="64" rx="13" ry="24" transform="rotate(-22 133 64)" />
         </g>
-        <!-- Round Puppy Head -->
         <ellipse class="pet-body-fill" cx="90" cy="66" rx="42" ry="34" />
         <path d="M62 42 Q90 32 118 42 Q105 51 90 51 Q75 51 62 42 Z" fill="url(#shineGrad)" />
-        <!-- Cute Eyebrow Dots (Shiba Style) -->
         <ellipse class="pet-accent-fill" cx="73" cy="54" rx="4.5" ry="2.6" opacity="0.9" />
         <ellipse class="pet-accent-fill" cx="107" cy="54" rx="4.5" ry="2.6" opacity="0.9" />
-        <!-- Soft Cream Snout & Cheeks -->
         <ellipse class="pet-accent-fill" cx="90" cy="78" rx="22" ry="14.5" opacity="0.95" />
         <ellipse cx="62" cy="76" rx="5.5" ry="3" fill="#fb7185" opacity="0.52" />
         <ellipse cx="118" cy="76" rx="5.5" ry="3" fill="#fb7185" opacity="0.52" />
-        <!-- Shiny Puppy Button Nose -->
         <ellipse cx="90" cy="73" rx="6.2" ry="4.4" fill="#1e293b" />
         <ellipse cx="88" cy="71.6" rx="2" ry="1.1" fill="#ffffff" opacity="0.7" />
-        <!-- Eyes -->
         <g class="eyes-normal">
           <ellipse cx="73" cy="65" rx="5.5" ry="6.5" fill="#1e293b" />
           <ellipse cx="107" cy="65" rx="5.5" ry="6.5" fill="#1e293b" />
@@ -302,7 +290,6 @@
           <path d="M66 67 Q73 57 80 67" fill="none" stroke="#1e293b" stroke-width="3.6" stroke-linecap="round" />
           <path d="M100 67 Q107 57 114 67" fill="none" stroke="#1e293b" stroke-width="3.6" stroke-linecap="round" />
         </g>
-        <!-- Mouths + Cute Happy Tongue -->
         <path class="mouth-normal" d="M83 80 Q86.5 84.5 90 79.5 Q93.5 84.5 97 80" fill="none" stroke="#1e293b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
         <circle class="mouth-thinking" cx="90" cy="82" r="2.4" fill="none" stroke="#1e293b" stroke-width="2" />
         <g class="mouth-waiting">
@@ -318,7 +305,7 @@
   };
 
   window.PetCharacters = {
-    getSvg(character) {
+    getSvg(character: RendererCharacterType): string {
       return CHARACTERS[character] || CHARACTERS.cat;
     },
   };

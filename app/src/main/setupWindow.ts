@@ -1,9 +1,9 @@
-const { BrowserWindow } = require('electron');
-const path = require('path');
+import { BrowserWindow } from 'electron';
+import path from 'path';
 
-let setupWindow = null;
+let setupWindow: BrowserWindow | null = null;
 
-function openSetupWindow() {
+export function openSetupWindow(): BrowserWindow {
   if (setupWindow && !setupWindow.isDestroyed()) {
     setupWindow.show();
     setupWindow.focus();
@@ -38,13 +38,8 @@ function openSetupWindow() {
   return setupWindow;
 }
 
-function closeSetupWindow() {
+export function closeSetupWindow(): void {
   if (setupWindow && !setupWindow.isDestroyed()) {
     setupWindow.close();
   }
 }
-
-module.exports = {
-  openSetupWindow,
-  closeSetupWindow,
-};

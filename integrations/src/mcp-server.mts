@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Zero-dependency Universal MCP Server (Stdio JSON-RPC 2.0) for AI Desktop Pet.
- * Bundled inside AI Pet.app so end-users never need npm install.
+ * Compiled to standalone .mjs and bundled inside AI Pet.app.
  */
 
 import readline from 'readline';
@@ -10,18 +10,27 @@ const PET_STATUS_URL = process.env.PET_STATUS_URL || 'http://127.0.0.1:4567/stat
 const DEFAULT_SOURCE = process.env.PET_SOURCE || 'ai-agent';
 const REQUEST_TIMEOUT_MS = 1500;
 
+type PetState = 'idle' | 'thinking' | 'coding' | 'waiting' | 'success';
+
+interface JsonRpcRequest {
+  jsonrpc?: string;
+  id?: string | number | null;
+  method?: string;
+  params?: Record<string, unknown>;
+}
+
 const SERVER_INFO = {
   name: 'ai-desktop-pet',
   version: '2.0.0',
 };
 
-const VALID_STATES = new Set(['idle', 'thinking', 'coding', 'waiting', 'success']);
+const VALID_STATES = new Set<PetState>(['idle', 'thinking', 'coding', 'waiting', 'success']);
 
 const TOOLS = [
   {
     name: 'update_pet_status',
     description:
-      'Update the floating AI Desktop Pet mascot animation, speech bubble, detailed thought box, macOS Menu Bar status, and Web Audio chime. Fails silently if the AI Pet app is not running.',
+      'Update the floating AI Desktop Pet mascot animation, speech bubble, detailed thought box, active model chip, macOS Menu Bar status, and Web Audio chime. Fails silently if the AI Pet app is not running.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -49,7 +58,7 @@ const TOOLS = [
         model: {
           type: 'string',
           maxLength: 48,
-          description: 'Optional AI model name currently working (e.g. "gpt-5.5", "claude-sonnet-4", "gemini-3-pro").',
+          description: 'Optional active AI model name (e.g. "gpt-5.5", "claude-sonnet-4", "gemini-3-pro").',
         },
         source: {
           type: 'string',
@@ -62,20 +71,21 @@ const TOOLS = [
   },
 ];
 
-function sendMessage(msg) {
+function sendMessage(msg: Record<string, unknown>): void {
   process.stdout.write(`${JSON.stringify(msg)}\n`);
 }
 
-function sendResult(id, result) {
+function sendResult(id: string | number, result: Record<string, unknown>): void {
   sendMessage({ jsonrpc: '2.0', id, result });
 }
 
-function sendError(id, code, message) {
+function sendError(id: string | number | null, code: number, message: string): void {
   sendMessage({ jsonrpc: '2.0', id, error: { code, message } });
 }
 
-async function handleUpdatePetStatus(args = {}) {
-  const state = VALID_STATES.has(args.state) ? args.state : 'idle';
+async function handleUpdatePetStatus(args: Record<string, unknown> = {}): Promise<Record<string, unknown>> {
+  const rawState = typeof args.state === 'string' ? args.state : 'idle';
+  const state: PetState = VALID_STATES.has(rawState as PetState) ? (rawState as PetState) : 'idle';
   const message = typeof args.message === 'string' ? args.message.trim().slice(0, 160) : '';
   const detail = typeof args.detail === 'string' ? args.detail.trim().slice(0, 240) : '';
   const project = typeof args.project === 'string' ? args.project.trim().slice(0, 40) : '';
@@ -95,12 +105,7 @@ async function handleUpdatePetStatus(args = {}) {
 
     if (!res.ok) {
       return {
-        content: [
-          {
-            type: 'text',
-            text: `AI Pet app returned HTTP ${res.status} (skipped silently).`,
-          },
-        ],
+        content: [{ type: 'text', text: `AI Pet app returned HTTP ${res.status} (skipped silently).` }],
       };
     }
 
@@ -114,30 +119,20 @@ async function handleUpdatePetStatus(args = {}) {
     };
   } catch {
     return {
-      content: [
-        {
-          type: 'text',
-          text: 'AI Pet app is not running (skipped silently).',
-        },
-      ],
+      content: [{ type: 'text', text: 'AI Pet app is not running (skipped silently).' }],
     };
   }
 }
 
-async function handleRequest(req) {
+async function handleRequest(req: JsonRpcRequest): Promise<void> {
   const { id, method, params } = req;
-
-  if (id === undefined || id === null) {
-    return;
-  }
+  if (id === undefined || id === null) return;
 
   if (method === 'initialize') {
-    const protocolVersion = params?.protocolVersion || '2024-11-05';
+    const protocolVersion = typeof params?.protocolVersion === 'string' ? params.protocolVersion : '2024-11-05';
     sendResult(id, {
       protocolVersion,
-      capabilities: {
-        tools: {},
-      },
+      capabilities: { tools: {} },
       serverInfo: SERVER_INFO,
     });
     return;
@@ -156,10 +151,11 @@ async function handleRequest(req) {
   if (method === 'tools/call') {
     const toolName = params?.name;
     if (toolName !== 'update_pet_status') {
-      sendError(id, -32601, `Unknown tool: ${toolName}`);
+      sendError(id, -32601, `Unknown tool: ${String(toolName)}`);
       return;
     }
-    const result = await handleUpdatePetStatus(params?.arguments || {});
+    const toolArgs = (params?.arguments as Record<string, unknown> | undefined) || {};
+    const result = await handleUpdatePetStatus(toolArgs);
     sendResult(id, result);
     return;
   }
@@ -174,7 +170,7 @@ async function handleRequest(req) {
     return;
   }
 
-  sendError(id, -32601, `Method not found: ${method}`);
+  sendError(id, -32601, `Method not found: ${String(method)}`);
 }
 
 const rl = readline.createInterface({
@@ -185,16 +181,16 @@ const rl = readline.createInterface({
 rl.on('line', (line) => {
   const trimmed = line.trim();
   if (!trimmed) return;
-  let parsed;
+  let parsed: JsonRpcRequest;
   try {
-    parsed = JSON.parse(trimmed);
+    parsed = JSON.parse(trimmed) as JsonRpcRequest;
   } catch {
     sendError(null, -32700, 'Parse error');
     return;
   }
   handleRequest(parsed).catch((err) => {
     if (parsed?.id !== undefined && parsed?.id !== null) {
-      sendError(parsed.id, -32603, err?.message || 'Internal error');
+      sendError(parsed.id, -32603, err instanceof Error ? err.message : 'Internal error');
     }
   });
 });

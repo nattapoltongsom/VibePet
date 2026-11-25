@@ -1,14 +1,25 @@
-const http = require('http');
+import http from 'http';
+import type { PetState, PetStatus, PetStatusInput } from '../shared/types';
 
-const HOST = '127.0.0.1';
-const PORT = 4567;
+export const HOST = '127.0.0.1';
+export const PORT = 4567;
 const MAX_BODY_BYTES = 16384;
-const VALID_STATES = new Set(['idle', 'thinking', 'coding', 'waiting', 'success']);
+
+export const VALID_STATES = new Set<PetState>(['idle', 'thinking', 'coding', 'waiting', 'success']);
+
+export function isValidState(value: unknown): value is PetState {
+  return typeof value === 'string' && VALID_STATES.has(value as PetState);
+}
+
+interface HttpServerDeps {
+  getStatus: () => PetStatus;
+  onStatusUpdate: (input: PetStatusInput) => PetStatus;
+}
 
 /**
  * Starts the localhost-only HTTP server that receives status updates from MCP & IDE hooks.
  */
-function createHttpServer({ getStatus, onStatusUpdate }) {
+export function createHttpServer({ getStatus, onStatusUpdate }: HttpServerDeps): http.Server {
   const server = http.createServer((req, res) => {
     const urlPath = (req.url || '/').split('?')[0];
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -23,8 +34,8 @@ function createHttpServer({ getStatus, onStatusUpdate }) {
       let body = '';
       let aborted = false;
 
-      req.on('data', (chunk) => {
-        body += chunk;
+      req.on('data', (chunk: Buffer) => {
+        body += chunk.toString('utf8');
         if (body.length > MAX_BODY_BYTES) {
           aborted = true;
           res.writeHead(413);
@@ -37,31 +48,31 @@ function createHttpServer({ getStatus, onStatusUpdate }) {
         if (aborted) return;
 
         try {
-          const parsed = JSON.parse(body || '{}');
+          const parsed = JSON.parse(body || '{}') as Record<string, unknown>;
           if (!parsed || typeof parsed !== 'object') {
             res.writeHead(400);
             res.end(JSON.stringify({ ok: false, error: 'Invalid JSON object' }));
             return;
           }
 
-          if (parsed.state && !VALID_STATES.has(parsed.state)) {
+          if (parsed.state !== undefined && !isValidState(parsed.state)) {
             res.writeHead(400);
             res.end(
               JSON.stringify({
                 ok: false,
-                error: `Invalid state "${parsed.state}". Expected: ${Array.from(VALID_STATES).join(', ')}`,
+                error: `Invalid state "${String(parsed.state)}". Expected: ${Array.from(VALID_STATES).join(', ')}`,
               })
             );
             return;
           }
 
           const updated = onStatusUpdate({
-            state: parsed.state || 'idle',
-            message: parsed.message || '',
-            detail: parsed.detail || parsed.thought || '',
-            project: parsed.project || '',
-            model: parsed.model || parsed.modelName || '',
-            source: parsed.source || '',
+            state: isValidState(parsed.state) ? parsed.state : 'idle',
+            message: typeof parsed.message === 'string' ? parsed.message : '',
+            detail: typeof parsed.detail === 'string' ? parsed.detail : typeof parsed.thought === 'string' ? parsed.thought : '',
+            project: typeof parsed.project === 'string' ? parsed.project : '',
+            model: typeof parsed.model === 'string' ? parsed.model : typeof parsed.modelName === 'string' ? parsed.modelName : '',
+            source: typeof parsed.source === 'string' ? parsed.source : '',
           });
 
           res.writeHead(200);
@@ -89,10 +100,3 @@ function createHttpServer({ getStatus, onStatusUpdate }) {
 
   return server;
 }
-
-module.exports = {
-  HOST,
-  PORT,
-  VALID_STATES,
-  createHttpServer,
-};

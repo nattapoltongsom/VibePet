@@ -2,9 +2,18 @@
  * Pure Web Audio API sound synthesizer — zero external MP3 dependencies.
  */
 (() => {
-  let audioCtx = null;
+  interface ToneConfig {
+    freq: number;
+    endFreq?: number | null;
+    startTime: number;
+    duration: number;
+    volume?: number;
+    type?: OscillatorType;
+  }
 
-  function getContext() {
+  let audioCtx: AudioContext | null = null;
+
+  function getContext(): AudioContext | null {
     if (!audioCtx) {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       if (!AudioCtx) return null;
@@ -16,7 +25,10 @@
     return audioCtx;
   }
 
-  function playTone(ctx, { freq, endFreq = null, startTime, duration, volume = 0.08, type = 'sine' }) {
+  function playTone(
+    ctx: AudioContext,
+    { freq, endFreq = null, startTime, duration, volume = 0.08, type = 'sine' }: ToneConfig
+  ): void {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = type;
@@ -35,7 +47,7 @@
     osc.stop(startTime + duration + 0.02);
   }
 
-  function playStateSound(state, muted) {
+  function playStateSound(state: RendererPetState, muted: boolean): void {
     if (muted) return;
     const ctx = getContext();
     if (!ctx) return;
@@ -46,13 +58,11 @@
       const endFreq = state === 'thinking' ? 600 : 700;
       playTone(ctx, { freq: startFreq, endFreq, startTime: now, duration: 0.095, volume: 0.06, type: 'sine' });
     } else if (state === 'waiting') {
-      // Pleasant 2-note doorbell chime (A5 -> E5)
       playTone(ctx, { freq: 880.0, startTime: now, duration: 0.24, volume: 0.11, type: 'sine' });
       playTone(ctx, { freq: 1760.0, startTime: now, duration: 0.16, volume: 0.025, type: 'sine' });
       playTone(ctx, { freq: 659.25, startTime: now + 0.18, duration: 0.36, volume: 0.11, type: 'sine' });
       playTone(ctx, { freq: 1318.5, startTime: now + 0.18, duration: 0.22, volume: 0.025, type: 'sine' });
     } else if (state === 'success') {
-      // Cheerful 3-note C-E-G arpeggio
       [523.25, 659.25, 783.99].forEach((freq, idx) => {
         const t = now + idx * 0.11;
         const dur = idx === 2 ? 0.34 : 0.18;

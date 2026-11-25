@@ -1,10 +1,11 @@
-const { BrowserWindow, screen } = require('electron');
-const path = require('path');
+import { BrowserWindow, screen } from 'electron';
+import path from 'path';
+import type { WindowPosition } from '../shared/types';
 
-const WINDOW_WIDTH = 360;
-const WINDOW_HEIGHT = 315;
+export const WINDOW_WIDTH = 360;
+export const WINDOW_HEIGHT = 315;
 
-function getDefaultPosition() {
+export function getDefaultPosition(): WindowPosition {
   const { workArea } = screen.getPrimaryDisplay();
   return {
     x: Math.round(workArea.x + workArea.width - WINDOW_WIDTH - 24),
@@ -12,7 +13,7 @@ function getDefaultPosition() {
   };
 }
 
-function getInitialPosition(savedPosition) {
+function getInitialPosition(savedPosition: WindowPosition | null): WindowPosition {
   if (
     savedPosition &&
     typeof savedPosition.x === 'number' &&
@@ -32,8 +33,11 @@ function getInitialPosition(savedPosition) {
   return getDefaultPosition();
 }
 
-function createPetWindow({ savedPosition, onClosed }) {
-  const { x, y } = getInitialPosition(savedPosition);
+export function createPetWindow(opts: {
+  savedPosition: WindowPosition | null;
+  onClosed?: () => void;
+}): BrowserWindow {
+  const { x, y } = getInitialPosition(opts.savedPosition);
 
   const win = new BrowserWindow({
     width: WINDOW_WIDTH,
@@ -57,25 +61,15 @@ function createPetWindow({ savedPosition, onClosed }) {
     },
   });
 
-  // Float above all windows including macOS native fullscreen Spaces
   win.setAlwaysOnTop(true, 'floating', 1);
   win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
-
-  // Transparent background clicks pass through to underlying apps
   win.setIgnoreMouseEvents(true, { forward: true });
 
   win.loadFile(path.join(__dirname, '../renderer/pet/index.html'));
 
   win.on('closed', () => {
-    if (onClosed) onClosed();
+    opts.onClosed?.();
   });
 
   return win;
 }
-
-module.exports = {
-  WINDOW_WIDTH,
-  WINDOW_HEIGHT,
-  getDefaultPosition,
-  createPetWindow,
-};

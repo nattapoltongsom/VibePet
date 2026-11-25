@@ -1,28 +1,29 @@
-const { app, ipcMain } = require('electron');
-const { loadPreferences, savePreferences } = require('./store');
-const { VALID_STATES, createHttpServer } = require('./httpServer');
-const { STATE_META, createTrayManager } = require('./tray');
-const { WINDOW_WIDTH, WINDOW_HEIGHT, getDefaultPosition, createPetWindow } = require('./petWindow');
-const { openSetupWindow, closeSetupWindow } = require('./setupWindow');
-const {
+import { app, ipcMain, type BrowserWindow } from 'electron';
+import type http from 'http';
+import type { ActivityItem, CharacterType, PetStatus, PetStatusInput, Preferences } from '../shared/types';
+import { loadPreferences, savePreferences } from './store';
+import { isValidState, createHttpServer } from './httpServer';
+import { STATE_META, createTrayManager } from './tray';
+import { WINDOW_WIDTH, WINDOW_HEIGHT, getDefaultPosition, createPetWindow } from './petWindow';
+import { openSetupWindow, closeSetupWindow } from './setupWindow';
+import {
   ensureRuntimeInstalled,
   getIntegrationStatuses,
   connectIntegrations,
   disconnectIntegration,
-} = require('./integrations');
+} from './integrations';
 
 const SUCCESS_AUTO_IDLE_MS = 10000;
 const MAX_HISTORY_ITEMS = 6;
 
-// Allow Web Audio API sounds to play immediately without prior click
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 
-let petWindow = null;
-let httpServer = null;
-let autoIdleTimer = null;
-const activityHistory = [];
+let petWindow: BrowserWindow | null = null;
+let httpServer: http.Server | null = null;
+let autoIdleTimer: NodeJS.Timeout | null = null;
+const activityHistory: ActivityItem[] = [];
 
-let currentStatus = {
+let currentStatus: PetStatus = {
   state: 'idle',
   message: '',
   detail: '',
@@ -45,11 +46,11 @@ if (!gotLock) {
   });
 }
 
-function formatTimeHM(date) {
+function formatTimeHM(date: Date): string {
   return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
 }
 
-function clearAutoIdleTimer() {
+function clearAutoIdleTimer(): void {
   if (autoIdleTimer) {
     clearTimeout(autoIdleTimer);
     autoIdleTimer = null;
@@ -75,7 +76,7 @@ const trayManager = createTrayManager({
   quit: () => app.quit(),
 });
 
-function applyCharacter(character) {
+function applyCharacter(character: CharacterType): Preferences {
   const prefs = savePreferences({ character });
   trayManager.setCharacterIcon(prefs.character);
   trayManager.update({ status: currentStatus, history: activityHistory, prefs });
@@ -85,7 +86,7 @@ function applyCharacter(character) {
   return prefs;
 }
 
-function toggleMute() {
+function toggleMute(): Preferences {
   const current = loadPreferences();
   const prefs = savePreferences({ muted: !current.muted });
   trayManager.update({ status: currentStatus, history: activityHistory, prefs });
@@ -95,15 +96,25 @@ function toggleMute() {
   return prefs;
 }
 
-function pushStatus({ state, message = '', detail = '', thought = '', project = '', model = '', source = '' }) {
+function pushStatus({
+  state,
+  message = '',
+  detail = '',
+  thought = '',
+  project = '',
+  model = '',
+  modelName = '',
+  source = '',
+}: PetStatusInput): PetStatus {
   clearAutoIdleTimer();
 
-  const safeState = VALID_STATES.has(state) ? state : 'idle';
+  const safeState = isValidState(state) ? state : 'idle';
   const safeMessage = typeof message === 'string' ? message.trim().slice(0, 160) : '';
   const rawDetail = typeof detail === 'string' && detail.trim() ? detail : typeof thought === 'string' ? thought : '';
   const safeDetail = rawDetail.replace(/\s+/g, ' ').trim().slice(0, 240);
   const safeProject = typeof project === 'string' ? project.trim().slice(0, 40) : '';
-  const safeModel = typeof model === 'string' ? model.trim().slice(0, 48) : '';
+  const rawModel = typeof model === 'string' && model.trim() ? model : typeof modelName === 'string' ? modelName : '';
+  const safeModel = rawModel.trim().slice(0, 48);
   const safeSource = typeof source === 'string' ? source.trim().slice(0, 32) : '';
 
   const now = new Date();
@@ -151,14 +162,13 @@ function pushStatus({ state, message = '', detail = '', thought = '', project = 
   return currentStatus;
 }
 
-// ================= IPC Registration =================
-function registerIpc() {
+function registerIpc(): void {
   ipcMain.handle('pet:get-init', () => {
     const prefs = loadPreferences();
     return { character: prefs.character, muted: prefs.muted };
   });
 
-  ipcMain.on('pet:set-ignore-mouse-events', (_event, ignore, options) => {
+  ipcMain.on('pet:set-ignore-mouse-events', (_event, ignore: boolean, options?: { forward: boolean }) => {
     if (!petWindow || petWindow.isDestroyed()) return;
     if (ignore) {
       petWindow.setIgnoreMouseEvents(true, options || { forward: true });
@@ -167,15 +177,12 @@ function registerIpc() {
     }
   });
 
-  ipcMain.on('pet:move-window-by', (_event, dx, dy) => {
+  ipcMain.on('pet:move-window-by', (_event, dx: number, dy: number) => {
     if (!petWindow || petWindow.isDestroyed()) return;
     const [x, y] = petWindow.getPosition();
     const nextX = Math.round(x + dx);
     const nextY = Math.round(y + dy);
-    petWindow.setBounds(
-      { x: nextX, y: nextY, width: WINDOW_WIDTH, height: WINDOW_HEIGHT },
-      false
-    );
+    petWindow.setBounds({ x: nextX, y: nextY, width: WINDOW_WIDTH, height: WINDOW_HEIGHT }, false);
     savePreferences({ position: { x: nextX, y: nextY } });
   });
 
@@ -183,7 +190,6 @@ function registerIpc() {
   ipcMain.on('pet:open-setup', () => openSetupWindow());
   ipcMain.on('pet:quit-app', () => app.quit());
 
-  // Setup & Permissions Window IPC
   ipcMain.handle('setup:get-state', () => {
     const prefs = loadPreferences();
     return {
@@ -192,12 +198,12 @@ function registerIpc() {
     };
   });
 
-  ipcMain.handle('setup:set-character', (_event, character) => {
+  ipcMain.handle('setup:set-character', (_event, character: CharacterType) => {
     const prefs = applyCharacter(character);
     return { character: prefs.character };
   });
 
-  ipcMain.handle('setup:connect', (_event, ids) => {
+  ipcMain.handle('setup:connect', (_event, ids: string[]) => {
     const results = connectIntegrations(ids);
     savePreferences({ setupPromptShown: true });
     return {
@@ -206,7 +212,7 @@ function registerIpc() {
     };
   });
 
-  ipcMain.handle('setup:disconnect', (_event, id) => {
+  ipcMain.handle('setup:disconnect', (_event, id: string) => {
     const result = disconnectIntegration(id);
     return {
       result,
@@ -220,7 +226,6 @@ function registerIpc() {
   });
 }
 
-// ================= App Startup =================
 app.whenReady().then(() => {
   if (process.platform === 'darwin' && app.dock) {
     app.dock.hide();
@@ -228,14 +233,13 @@ app.whenReady().then(() => {
 
   const prefs = loadPreferences();
 
-  // Keep ~/.ai-pet/scripts synced if already connected from a previous launch
   try {
     const statuses = getIntegrationStatuses();
     if (statuses.some((s) => s.connected)) {
       ensureRuntimeInstalled();
     }
   } catch (err) {
-    console.error('[AI Pet] Runtime sync skipped:', err.message);
+    console.error('[AI Pet] Runtime sync skipped:', err instanceof Error ? err.message : err);
   }
 
   registerIpc();
@@ -258,7 +262,6 @@ app.whenReady().then(() => {
     onStatusUpdate: (payload) => pushStatus(payload),
   });
 
-  // First launch: open the explicit consent & character picker window
   if (!prefs.setupPromptShown) {
     openSetupWindow();
   }

@@ -1,0 +1,12 @@
+{
+  "name": "ai-desktop-pet-monorepo",
+  "private": true,
+  "version": "2.0.0",
+  "description": "AI Desktop Pet — TypeScript macOS floating companion & universal MCP/Hook integrations",
+  "scripts": {
+    "typecheck": "npm --prefix app run typecheck && npm --prefix mcp-server run typecheck",
+    "compile": "npm --prefix app run compile && npm --prefix mcp-server run build",
+    "start": "npm --prefix app start",
+    "build:mac": "npm --prefix app run build:mac"
+  }
+}

@@ -1,25 +1,25 @@
 (() => {
   const { setupAPI } = window;
-  const charButtons = Array.from(document.querySelectorAll('.char-card'));
-  const listEl = document.getElementById('integrations-list');
-  const connectBtn = document.getElementById('connect-btn');
-  const skipBtn = document.getElementById('skip-btn');
-  const bannerEl = document.getElementById('feedback-banner');
+  const charButtons = Array.from(document.querySelectorAll<HTMLButtonElement>('.char-card'));
+  const listEl = document.getElementById('integrations-list') as HTMLElement;
+  const connectBtn = document.getElementById('connect-btn') as HTMLButtonElement;
+  const skipBtn = document.getElementById('skip-btn') as HTMLButtonElement;
+  const bannerEl = document.getElementById('feedback-banner') as HTMLElement;
 
-  const selectedIds = new Set();
+  const selectedIds = new Set<string>();
 
-  function showBanner(text) {
+  function showBanner(text: string): void {
     bannerEl.textContent = text;
     bannerEl.classList.add('visible');
   }
 
-  function renderCharacterSelection(activeChar) {
+  function renderCharacterSelection(activeChar: RendererCharacterType): void {
     charButtons.forEach((btn) => {
       btn.classList.toggle('active', btn.dataset.char === activeChar);
     });
   }
 
-  function renderIntegrations(integrations, preselectDetected = false) {
+  function renderIntegrations(integrations: RendererIntegrationInfo[], preselectDetected = false): void {
     listEl.innerHTML = '';
 
     integrations.forEach((item) => {
@@ -52,22 +52,18 @@
       nameEl.textContent = item.name;
       titleRow.appendChild(nameEl);
 
+      const badge = document.createElement('span');
       if (item.connected) {
-        const badge = document.createElement('span');
         badge.className = 'pill pill-connected';
         badge.textContent = 'Connected ✓';
-        titleRow.appendChild(badge);
       } else if (item.detected) {
-        const badge = document.createElement('span');
         badge.className = 'pill pill-detected';
         badge.textContent = 'Detected';
-        titleRow.appendChild(badge);
       } else {
-        const badge = document.createElement('span');
         badge.className = 'pill pill-notfound';
         badge.textContent = 'Not detected';
-        titleRow.appendChild(badge);
       }
+      titleRow.appendChild(badge);
 
       const descEl = document.createElement('p');
       descEl.className = 'int-desc';
@@ -105,7 +101,8 @@
 
   charButtons.forEach((btn) => {
     btn.addEventListener('click', async () => {
-      const nextChar = btn.dataset.char;
+      const nextChar = btn.dataset.char as RendererCharacterType | undefined;
+      if (!nextChar) return;
       renderCharacterSelection(nextChar);
       await setupAPI.setCharacter(nextChar);
     });

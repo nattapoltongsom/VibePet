@@ -4,6 +4,8 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "lib": ["ES2022"],
+    "typeRoots": ["../app/node_modules/@types"],
+    "types": ["node"],
     "strict": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,

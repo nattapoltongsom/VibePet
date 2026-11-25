@@ -96,28 +96,33 @@ flowchart LR
 
 ```text
 AI-Desktop-Pet/
-├── .github/workflows/release.yml   # Automated macOS .dmg build & GitHub Release on v* tags
-├── app/
+├── .github/workflows/release.yml   # Automated TypeScript check + macOS .dmg GitHub Release
+├── app/                            # Strict TypeScript Electron macOS App
 │   ├── src/
+│   │   ├── shared/types.ts         # Shared domain types (PetStatus, CharacterType, Preferences)
 │   │   ├── main/
-│   │   │   ├── index.js            # App lifecycle, single-instance lock, IPC coordination
-│   │   │   ├── store.js            # Persistent preferences (character, mute, window position)
-│   │   │   ├── httpServer.js       # Localhost HTTP server (127.0.0.1:4567)
-│   │   │   ├── tray.js             # Dynamic Cat/Robot/Dog Menu Bar icon, live status & history
-│   │   │   ├── petWindow.js        # Transparent always-on-top click-through BrowserWindow
-│   │   │   ├── setupWindow.js      # Consent & Character Picker modal window
-│   │   │   └── integrations.js     # Auto-detect & non-destructive installer/uninstaller
-│   │   ├── preload/                # Context-isolated IPC bridges (petPreload, setupPreload)
+│   │   │   ├── index.ts            # App lifecycle, single-instance lock, IPC coordination
+│   │   │   ├── store.ts            # Persistent preferences (character, mute, window position)
+│   │   │   ├── httpServer.ts       # Localhost HTTP server (127.0.0.1:4567)
+│   │   │   ├── tray.ts             # Dynamic Cat/Robot/Dog Menu Bar icon, live status & history
+│   │   │   ├── petWindow.ts        # Transparent always-on-top click-through BrowserWindow
+│   │   │   ├── setupWindow.ts      # Consent & Character Picker modal window
+│   │   │   └── integrations.ts     # Auto-detect & non-destructive installer/uninstaller
+│   │   ├── preload/                # Context-isolated typed IPC bridges
 │   │   └── renderer/
 │   │       ├── pet/                # Floating pet stage, Cat/Robot/Dog SVGs & Web Audio synth
 │   │       └── setup/              # Permissions & companion selection UI
 │   ├── scripts/generate-icon.mjs   # Procedural 512x512 macOS icon generator
-│   └── package.json                # electron-builder config (bundles integrations/ into .app)
-├── integrations/                   # Zero-dependency runtime scripts bundled inside AI Pet.app
-│   ├── mcp-server.mjs              # Standalone Stdio JSON-RPC 2.0 MCP server
-│   ├── agy-hook.mjs                # Antigravity lifecycle hook
-│   └── agent-hook.mjs              # Codex & Claude Code lifecycle hook
-├── mcp-server/                     # Optional @modelcontextprotocol/sdk standalone package
+│   ├── tsconfig.json               # Main & preload TypeScript config
+│   ├── tsconfig.renderer.json      # Renderer DOM TypeScript config
+│   └── package.json                # electron-builder config (bundles compiled integrations)
+├── integrations/                   # Zero-dependency TypeScript runtime bundled inside AI Pet.app
+│   ├── src/
+│   │   ├── mcp-server.mts          # Standalone Stdio JSON-RPC 2.0 MCP server
+│   │   ├── agy-hook.mts            # Antigravity lifecycle hook
+│   │   └── agent-hook.mts          # Codex & Claude Code lifecycle hook
+│   └── tsconfig.json               # Compiles to zero-dep ESM (.mjs) in integrations/dist/
+├── mcp-server/                     # Optional @modelcontextprotocol/sdk TypeScript MCP package
 ├── skills/pet-companion/SKILL.md   # Portable Agent Skill definition
 └── LICENSE                         # MIT License
 ```

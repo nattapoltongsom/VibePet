@@ -1,6 +1,7 @@
-const { Tray, Menu, nativeImage } = require('electron');
+import { Tray, Menu, nativeImage, type MenuItemConstructorOptions } from 'electron';
+import type { ActivityItem, CharacterType, PetState, PetStatus, PetStatusInput, Preferences } from '../shared/types';
 
-const STATE_META = {
+export const STATE_META: Record<PetState, { icon: string; label: string }> = {
   idle: { icon: '🔵', label: 'Ready' },
   thinking: { icon: '🟣', label: 'Thinking' },
   coding: { icon: '🟢', label: 'Coding' },
@@ -10,7 +11,7 @@ const STATE_META = {
 
 const graphemeSegmenter = new Intl.Segmenter('en', { granularity: 'grapheme' });
 
-function buildTraySvg(character) {
+function buildTraySvg(character: CharacterType): string {
   if (character === 'robot') {
     return `
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18">
@@ -38,7 +39,6 @@ function buildTraySvg(character) {
     `.trim();
   }
 
-  // Default: cat
   return `
     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18">
       <path d="M3.2 8.2 L3.8 3.2 L7.2 5.7 Q9 5.2 10.8 5.7 L14.2 3.2 L14.8 8.2 Q15.2 13.8 9 14.8 Q2.8 13.8 3.2 8.2 Z" fill="none" stroke="black" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
@@ -53,7 +53,7 @@ function buildTraySvg(character) {
   `.trim();
 }
 
-function createTrayImage(character) {
+function createTrayImage(character: CharacterType) {
   const svg = buildTraySvg(character);
   const dataUrl = `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
   const icon = nativeImage.createFromDataURL(dataUrl);
@@ -61,7 +61,7 @@ function createTrayImage(character) {
   return icon;
 }
 
-function formatSourceShort(source) {
+function formatSourceShort(source: string): string {
   const lower = (source || '').trim().toLowerCase();
   if (!lower) return '';
   if (lower.includes('antigravity') || lower === 'agy') return '[AGY] ';
@@ -71,7 +71,7 @@ function formatSourceShort(source) {
   return `[${source.trim().slice(0, 8)}] `;
 }
 
-function truncateGraphemes(text, maxGraphemes = 26) {
+function truncateGraphemes(text: string, maxGraphemes = 26): string {
   const clean = (text || '').replace(/\s+/g, ' ').trim();
   if (!clean) return '';
   const segments = Array.from(graphemeSegmenter.segment(clean), (s) => s.segment);
@@ -79,10 +79,32 @@ function truncateGraphemes(text, maxGraphemes = 26) {
   return `${segments.slice(0, maxGraphemes - 1).join('')}…`;
 }
 
-function createTrayManager(actions) {
-  let tray = null;
+export interface TrayActions {
+  openSetup: () => void;
+  setCharacter: (character: CharacterType) => void;
+  setShowTrayTitle: (show: boolean) => void;
+  toggleMute: () => void;
+  resetPosition: () => void;
+  previewStatus: (input: PetStatusInput) => void;
+  quit: () => void;
+}
 
-  function update({ status, history, prefs }) {
+export interface TraySnapshot {
+  status: PetStatus;
+  history: ActivityItem[];
+  prefs: Preferences;
+}
+
+export interface TrayManager {
+  init: (initialState: TraySnapshot) => void;
+  update: (snapshot: TraySnapshot) => void;
+  setCharacterIcon: (character: CharacterType) => void;
+}
+
+export function createTrayManager(actions: TrayActions): TrayManager {
+  let tray: Tray | null = null;
+
+  function update({ status, history, prefs }: TraySnapshot): void {
     if (!tray) return;
 
     const meta = STATE_META[status.state] || STATE_META.idle;
@@ -112,7 +134,7 @@ function createTrayManager(actions) {
       ? `${meta.icon} ${meta.label}${fullSource}: ${menuMsg}`
       : `${meta.icon} ${meta.label}${fullSource}`;
 
-    const headerItems = [{ label: statusLine, enabled: false }];
+    const headerItems: MenuItemConstructorOptions[] = [{ label: statusLine, enabled: false }];
     if (status.model) {
       headerItems.push({ label: `⚡ Model: ${truncateGraphemes(status.model, 40)}`, enabled: false });
     }
@@ -123,7 +145,7 @@ function createTrayManager(actions) {
       headerItems.push({ label: `💭 ${truncateGraphemes(status.detail, 54)}`, enabled: false });
     }
 
-    const historySubmenu =
+    const historySubmenu: MenuItemConstructorOptions[] =
       history.length > 0
         ? history.map((item) => {
             const itemMeta = STATE_META[item.state] || STATE_META.idle;
@@ -258,28 +280,19 @@ function createTrayManager(actions) {
     tray.setContextMenu(menu);
   }
 
-  function init(initialState) {
+  function init(initialState: TraySnapshot): void {
     try {
       tray = new Tray(createTrayImage(initialState.prefs.character));
       update(initialState);
     } catch (err) {
-      console.error('[AI Pet Tray] Failed to initialize:', err.message);
+      console.error('[AI Pet Tray] Failed to initialize:', err instanceof Error ? err.message : err);
     }
   }
 
-  function setCharacterIcon(character) {
+  function setCharacterIcon(character: CharacterType): void {
     if (!tray) return;
     tray.setImage(createTrayImage(character));
   }
 
-  return {
-    init,
-    update,
-    setCharacterIcon,
-  };
+  return { init, update, setCharacterIcon };
 }
-
-module.exports = {
-  STATE_META,
-  createTrayManager,
-};

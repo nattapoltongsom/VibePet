@@ -1,9 +1,12 @@
 # Dependencies
 node_modules/
 
-# Electron build outputs
+# Build & TypeScript compiled outputs
 app/dist/
+app/dist-js/
 app/out/
+integrations/dist/
+mcp-server/dist/
 
 # OS & Editor files
 .DS_Store

@@ -10,17 +10,17 @@ const REQUEST_TIMEOUT_MS = 1500;
 
 const server = new McpServer({
   name: 'ai-desktop-pet',
-  version: '1.1.0',
+  version: '2.0.0',
 });
 
 server.tool(
   'update_pet_status',
-  'Update the AI Desktop Pet floating cat animation, speech bubble message, detailed thought/reasoning box, macOS Menu Bar status, and notification sound. Fails silently if the Desktop Pet app is not running.',
+  'Update the AI Desktop Pet floating mascot animation, speech bubble message, detailed thought box, active model chip, macOS Menu Bar status, and notification sound. Fails silently if the Desktop Pet app is not running.',
   {
     state: z
       .enum(['idle', 'thinking', 'coding', 'waiting', 'success'])
       .describe(
-        'Visual state of the cat pet: idle (blue), thinking (purple), coding (green), waiting (amber, pins bubble + plays chime), success (bright green + plays melody).'
+        'Visual state of the pet: idle (blue), thinking (purple), coding (green), waiting (amber, pins bubble + plays chime), success (bright green + plays melody).'
       ),
     message: z
       .string()
@@ -30,24 +30,22 @@ server.tool(
       .string()
       .max(240)
       .optional()
-      .describe(
-        'Optional deeper thought or detail showing what you are thinking, analyzing, editing, or waiting to approve (rendered in the 💭 thought box).'
-      ),
+      .describe('Optional deeper thought or step detail rendered in the thought box beneath the headline.'),
     project: z
       .string()
       .max(40)
       .optional()
-      .describe('Optional workspace or repository name shown as a small pill badge (e.g. "liff-app").'),
+      .describe('Optional workspace or repository name shown as a compact pill badge.'),
     model: z
       .string()
       .max(48)
       .optional()
-      .describe('Optional AI model name currently active (e.g. "gpt-5.5", "claude-sonnet-4", "gemini-3-pro").'),
+      .describe('Optional active AI model name (e.g. "gpt-5.5", "claude-sonnet-4", "gemini-3-pro").'),
     source: z
       .string()
       .max(32)
       .optional()
-      .describe('Origin IDE or client name shown as a badge on the speech bubble, e.g. "antigravity" or "vscode".'),
+      .describe('Origin IDE or client name shown as a badge, e.g. "antigravity", "vscode", "codex", "claude-code".'),
   },
   async ({ state, message, detail, project, model, source }) => {
     const resolvedSource = (source && source.trim()) || DEFAULT_SOURCE;
@@ -63,9 +61,7 @@ server.tool(
     try {
       const response = await fetch(PET_STATUS_URL, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       });
@@ -102,7 +98,7 @@ server.tool(
   }
 );
 
-async function main() {
+async function main(): Promise<void> {
   const transport = new StdioServerTransport();
   await server.connect(transport);
 }

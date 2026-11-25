@@ -1,7 +1,8 @@
-const fs = require('fs');
-const os = require('os');
-const path = require('path');
-const { app } = require('electron');
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
+import { app } from 'electron';
+import type { IntegrationActionResult, IntegrationInfo } from '../shared/types';
 
 const HOME = os.homedir();
 const RUNTIME_ROOT = path.join(HOME, '.ai-pet');
@@ -19,35 +20,72 @@ const MD_END = '<!-- ai-desktop-pet:end -->';
 const TOML_START = '# >>> ai-desktop-pet >>>';
 const TOML_END = '# <<< ai-desktop-pet <<<';
 
-function getBundledRoot() {
-  return app.isPackaged ? process.resourcesPath : path.resolve(__dirname, '../../../');
+interface HookCommand {
+  type: 'command';
+  command: string;
+  timeout?: number;
 }
 
-function exists(p) {
+interface HookGroup {
+  matcher?: string;
+  hooks: HookCommand[];
+}
+
+interface IntegrationAdapter {
+  id: string;
+  name: string;
+  description: string;
+  files: string[];
+  detect: () => boolean;
+  isConnected: () => boolean;
+  connect: () => void;
+  disconnect: () => void;
+}
+
+function getIntegrationsSourceDir(): string {
+  if (app.isPackaged) {
+    return path.join(process.resourcesPath, 'integrations');
+  }
+  return path.resolve(__dirname, '../../../integrations/dist');
+}
+
+function getBundledSkillPath(): string {
+  if (app.isPackaged) {
+    return path.join(process.resourcesPath, 'skills', 'pet-companion', 'SKILL.md');
+  }
+  return path.resolve(__dirname, '../../../skills/pet-companion/SKILL.md');
+}
+
+function exists(targetPath: string): boolean {
   try {
-    fs.accessSync(p);
+    fs.accessSync(targetPath);
     return true;
   } catch {
     return false;
   }
 }
 
-function readJsonSafe(filePath) {
+function readJsonSafe(filePath: string): Record<string, unknown> {
   try {
     const raw = fs.readFileSync(filePath, 'utf8').trim();
     if (!raw) return {};
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : {};
   } catch {
     return {};
   }
 }
 
-function writeJsonSafe(filePath, data) {
+function writeJsonSafe(filePath: string, data: Record<string, unknown>): void {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   fs.writeFileSync(filePath, `${JSON.stringify(data, null, 2)}\n`, 'utf8');
 }
 
-function upsertFencedBlock(filePath, startMarker, endMarker, content) {
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function upsertFencedBlock(filePath: string, startMarker: string, endMarker: string, content: string): void {
   let existing = '';
   try {
     existing = fs.readFileSync(filePath, 'utf8');
@@ -58,18 +96,17 @@ function upsertFencedBlock(filePath, startMarker, endMarker, content) {
   const block = `${startMarker}\n${content.trim()}\n${endMarker}`;
   const regex = new RegExp(`${escapeRegex(startMarker)}[\\s\\S]*?${escapeRegex(endMarker)}`, 'm');
 
-  let next;
-  if (regex.test(existing)) {
-    next = existing.replace(regex, block);
-  } else {
-    next = existing.trim() ? `${existing.trimEnd()}\n\n${block}\n` : `${block}\n`;
-  }
+  const next = regex.test(existing)
+    ? existing.replace(regex, block)
+    : existing.trim()
+      ? `${existing.trimEnd()}\n\n${block}\n`
+      : `${block}\n`;
 
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   fs.writeFileSync(filePath, next, 'utf8');
 }
 
-function removeFencedBlock(filePath, startMarker, endMarker) {
+function removeFencedBlock(filePath: string, startMarker: string, endMarker: string): void {
   if (!exists(filePath)) return;
   const existing = fs.readFileSync(filePath, 'utf8');
   const regex = new RegExp(`\\n*${escapeRegex(startMarker)}[\\s\\S]*?${escapeRegex(endMarker)}\\n*`, 'gm');
@@ -77,11 +114,7 @@ function removeFencedBlock(filePath, startMarker, endMarker) {
   fs.writeFileSync(filePath, next ? `${next}\n` : '', 'utf8');
 }
 
-function escapeRegex(str) {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-function isAiPetHookCommand(cmd) {
+function isAiPetHookCommand(cmd: unknown): boolean {
   if (typeof cmd !== 'string') return false;
   return (
     cmd.includes(HOOK_MARKER) ||
@@ -93,12 +126,10 @@ function isAiPetHookCommand(cmd) {
 
 /**
  * Stages bundled zero-dependency scripts and the portable Node launcher into ~/.ai-pet/.
- * Works even on Macs without Node.js on PATH by falling back to Electron's bundled runtime.
+ * Falls back to AI Pet.app's bundled Electron runtime when Node.js is not on PATH.
  */
-function ensureRuntimeInstalled() {
-  const bundledRoot = getBundledRoot();
-  const srcIntegrations = path.join(bundledRoot, 'integrations');
-
+export function ensureRuntimeInstalled(): void {
+  const srcIntegrations = getIntegrationsSourceDir();
   fs.mkdirSync(SCRIPTS_DIR, { recursive: true });
   fs.mkdirSync(BIN_DIR, { recursive: true });
 
@@ -135,18 +166,16 @@ exit 0
   fs.chmodSync(RUNNER_BIN, 0o755);
 }
 
-function readBundledSkill() {
-  const bundledRoot = getBundledRoot();
-  const skillPath = path.join(bundledRoot, 'skills', 'pet-companion', 'SKILL.md');
+function readBundledSkill(): string {
   try {
-    return fs.readFileSync(skillPath, 'utf8');
+    return fs.readFileSync(getBundledSkillPath(), 'utf8');
   } catch {
-    return `---\nname: pet-companion\ndescription: Controls AI Desktop Pet via update_pet_status.\n---\n\nUse update_pet_status(state, message, detail, project, source) to report agent progress.\n`;
+    return `---\nname: pet-companion\ndescription: Controls AI Desktop Pet via update_pet_status.\n---\n\nUse update_pet_status(state, message, detail, project, model, source) to report agent progress.\n`;
   }
 }
 
-function mergeHookGroups(existingGroups, newGroup) {
-  const list = Array.isArray(existingGroups) ? existingGroups : [];
+function mergeHookGroups(existingGroups: unknown, newGroup: HookGroup): HookGroup[] {
+  const list = Array.isArray(existingGroups) ? (existingGroups as HookGroup[]) : [];
   const cleaned = list.filter((group) => {
     const hooks = Array.isArray(group?.hooks) ? group.hooks : [];
     return !hooks.some((h) => isAiPetHookCommand(h?.command));
@@ -155,47 +184,47 @@ function mergeHookGroups(existingGroups, newGroup) {
   return cleaned;
 }
 
-function removeAiPetHookGroups(existingGroups) {
+function removeAiPetHookGroups(existingGroups: unknown): HookGroup[] {
   if (!Array.isArray(existingGroups)) return [];
-  return existingGroups.filter((group) => {
+  return (existingGroups as HookGroup[]).filter((group) => {
     const hooks = Array.isArray(group?.hooks) ? group.hooks : [];
     return !hooks.some((h) => isAiPetHookCommand(h?.command));
   });
 }
 
-function hasAiPetHookInObj(hooksObj) {
+function hasAiPetHookInObj(hooksObj: unknown): boolean {
   if (!hooksObj || typeof hooksObj !== 'object') return false;
-  return JSON.stringify(hooksObj).includes('agent-hook.mjs') || JSON.stringify(hooksObj).includes('pet-hook.mjs');
+  const serialized = JSON.stringify(hooksObj);
+  return serialized.includes('agent-hook.mjs') || serialized.includes('pet-hook.mjs');
 }
 
-// ================= Integration Definitions =================
-
-const INTEGRATIONS = [
+const INTEGRATIONS: IntegrationAdapter[] = [
   {
     id: 'antigravity',
     name: 'Antigravity',
-    description: 'Standalone Antigravity & VS Code extension — live thinking, coding, approval alerts & completion.',
+    description: 'Standalone Antigravity & VS Code extension — live thoughts, model badge, approval alerts & done chime.',
     files: ['~/.gemini/config/mcp_config.json', '~/.gemini/config/hooks.json', '~/.gemini/config/skills/'],
-    detect() {
-      return exists(path.join(HOME, '.gemini', 'config')) || exists(path.join(HOME, '.gemini', 'antigravity'));
-    },
-    isConnected() {
+    detect: () =>
+      exists(path.join(HOME, '.gemini', 'config')) || exists(path.join(HOME, '.gemini', 'antigravity')),
+    isConnected: () => {
       const mcp = readJsonSafe(path.join(HOME, '.gemini', 'config', 'mcp_config.json'));
       const hooks = readJsonSafe(path.join(HOME, '.gemini', 'config', 'hooks.json'));
-      return Boolean(mcp?.mcpServers?.['ai-desktop-pet'] || hooks?.['ai-desktop-pet']);
+      const mcpServers = (mcp.mcpServers as Record<string, unknown> | undefined) || {};
+      return Boolean(mcpServers['ai-desktop-pet'] || hooks['ai-desktop-pet']);
     },
-    connect() {
+    connect: () => {
       ensureRuntimeInstalled();
       const base = path.join(HOME, '.gemini', 'config');
 
       const mcpPath = path.join(base, 'mcp_config.json');
       const mcp = readJsonSafe(mcpPath);
-      mcp.mcpServers = mcp.mcpServers || {};
-      mcp.mcpServers['ai-desktop-pet'] = {
+      const mcpServers = (mcp.mcpServers as Record<string, unknown> | undefined) || {};
+      mcpServers['ai-desktop-pet'] = {
         command: RUNNER_BIN,
         args: [MCP_SCRIPT],
         env: { PET_SOURCE: 'antigravity' },
       };
+      mcp.mcpServers = mcpServers;
       writeJsonSafe(mcpPath, mcp);
 
       const hooksPath = path.join(base, 'hooks.json');
@@ -231,12 +260,13 @@ const INTEGRATIONS = [
         `## AI Desktop Pet\nWhen \`update_pet_status\` is available, call it with \`state: "waiting"\` and \`source: "antigravity"\` before actions requiring user approval, questions, or plan confirmation.`
       );
     },
-    disconnect() {
+    disconnect: () => {
       const base = path.join(HOME, '.gemini', 'config');
       const mcpPath = path.join(base, 'mcp_config.json');
       if (exists(mcpPath)) {
         const mcp = readJsonSafe(mcpPath);
-        if (mcp.mcpServers) delete mcp.mcpServers['ai-desktop-pet'];
+        const mcpServers = mcp.mcpServers as Record<string, unknown> | undefined;
+        if (mcpServers) delete mcpServers['ai-desktop-pet'];
         writeJsonSafe(mcpPath, mcp);
       }
 
@@ -256,25 +286,25 @@ const INTEGRATIONS = [
     name: 'VS Code (Copilot Chat)',
     description: 'Global VS Code User MCP server & Copilot Agent instructions across every workspace.',
     files: ['~/Library/Application Support/Code/User/mcp.json', 'User/prompts/pet-companion.instructions.md'],
-    detect() {
-      return exists(path.join(HOME, 'Library', 'Application Support', 'Code', 'User'));
-    },
-    isConnected() {
+    detect: () => exists(path.join(HOME, 'Library', 'Application Support', 'Code', 'User')),
+    isConnected: () => {
       const mcp = readJsonSafe(path.join(HOME, 'Library', 'Application Support', 'Code', 'User', 'mcp.json'));
-      return Boolean(mcp?.servers?.['ai-desktop-pet']);
+      const servers = (mcp.servers as Record<string, unknown> | undefined) || {};
+      return Boolean(servers['ai-desktop-pet']);
     },
-    connect() {
+    connect: () => {
       ensureRuntimeInstalled();
       const userDir = path.join(HOME, 'Library', 'Application Support', 'Code', 'User');
       const mcpPath = path.join(userDir, 'mcp.json');
       const mcp = readJsonSafe(mcpPath);
-      mcp.servers = mcp.servers || {};
-      mcp.servers['ai-desktop-pet'] = {
+      const servers = (mcp.servers as Record<string, unknown> | undefined) || {};
+      servers['ai-desktop-pet'] = {
         type: 'stdio',
         command: RUNNER_BIN,
         args: [MCP_SCRIPT],
         env: { PET_SOURCE: 'vscode' },
       };
+      mcp.servers = servers;
       writeJsonSafe(mcpPath, mcp);
 
       const promptPath = path.join(userDir, 'prompts', 'pet-companion.instructions.md');
@@ -289,12 +319,13 @@ const INTEGRATIONS = [
       fs.mkdirSync(path.dirname(copilotSkillPath), { recursive: true });
       fs.writeFileSync(copilotSkillPath, readBundledSkill(), 'utf8');
     },
-    disconnect() {
+    disconnect: () => {
       const userDir = path.join(HOME, 'Library', 'Application Support', 'Code', 'User');
       const mcpPath = path.join(userDir, 'mcp.json');
       if (exists(mcpPath)) {
         const mcp = readJsonSafe(mcpPath);
-        if (mcp.servers) delete mcp.servers['ai-desktop-pet'];
+        const servers = mcp.servers as Record<string, unknown> | undefined;
+        if (servers) delete servers['ai-desktop-pet'];
         writeJsonSafe(mcpPath, mcp);
       }
       const promptPath = path.join(userDir, 'prompts', 'pet-companion.instructions.md');
@@ -305,23 +336,20 @@ const INTEGRATIONS = [
   {
     id: 'codex',
     name: 'OpenAI Codex (VS Code & CLI)',
-    description: 'Automatic lifecycle hooks (including approval chimes) & MCP server across all Codex projects.',
+    description: 'Automatic lifecycle hooks (including approval chimes & model badge) + MCP server across all projects.',
     files: ['~/.codex/config.toml', '~/.codex/hooks.json', '~/.codex/skills/'],
-    detect() {
-      return exists(path.join(HOME, '.codex'));
-    },
-    isConnected() {
+    detect: () => exists(path.join(HOME, '.codex')),
+    isConnected: () => {
       const hooks = readJsonSafe(path.join(HOME, '.codex', 'hooks.json'));
       const tomlPath = path.join(HOME, '.codex', 'config.toml');
       const tomlHasMcp = exists(tomlPath) && fs.readFileSync(tomlPath, 'utf8').includes('[mcp_servers.ai-desktop-pet]');
-      return Boolean(tomlHasMcp || hasAiPetHookInObj(hooks?.hooks));
+      return Boolean(tomlHasMcp || hasAiPetHookInObj(hooks.hooks));
     },
-    connect() {
+    connect: () => {
       ensureRuntimeInstalled();
       const codexDir = path.join(HOME, '.codex');
       const tomlPath = path.join(codexDir, 'config.toml');
 
-      // Remove any prior unfenced [mcp_servers.ai-desktop-pet] block cleanly before upserting fenced block
       if (exists(tomlPath)) {
         const raw = fs.readFileSync(tomlPath, 'utf8');
         if (!raw.includes(TOML_START) && raw.includes('[mcp_servers.ai-desktop-pet]')) {
@@ -344,42 +372,45 @@ PET_SOURCE = "codex"`;
 
       const hooksPath = path.join(codexDir, 'hooks.json');
       const data = readJsonSafe(hooksPath);
-      data.hooks = data.hooks || {};
+      const hooks = (data.hooks as Record<string, unknown> | undefined) || {};
       const hookCmd = `PET_SOURCE=codex "${RUNNER_BIN}" "${AGENT_HOOK_SCRIPT}"`;
 
-      data.hooks.UserPromptSubmit = mergeHookGroups(data.hooks.UserPromptSubmit, {
+      hooks.UserPromptSubmit = mergeHookGroups(hooks.UserPromptSubmit, {
         hooks: [{ type: 'command', command: hookCmd, timeout: 5 }],
       });
-      data.hooks.PreToolUse = mergeHookGroups(data.hooks.PreToolUse, {
+      hooks.PreToolUse = mergeHookGroups(hooks.PreToolUse, {
         matcher: '.*',
         hooks: [{ type: 'command', command: hookCmd, timeout: 5 }],
       });
-      data.hooks.PermissionRequest = mergeHookGroups(data.hooks.PermissionRequest, {
+      hooks.PermissionRequest = mergeHookGroups(hooks.PermissionRequest, {
         matcher: '.*',
         hooks: [{ type: 'command', command: hookCmd, timeout: 5 }],
       });
-      data.hooks.Notification = mergeHookGroups(data.hooks.Notification, {
+      hooks.Notification = mergeHookGroups(hooks.Notification, {
         hooks: [{ type: 'command', command: hookCmd, timeout: 5 }],
       });
-      data.hooks.Stop = mergeHookGroups(data.hooks.Stop, {
+      hooks.Stop = mergeHookGroups(hooks.Stop, {
         hooks: [{ type: 'command', command: hookCmd, timeout: 5 }],
       });
+      data.hooks = hooks;
       writeJsonSafe(hooksPath, data);
 
       const skillPath = path.join(codexDir, 'skills', 'pet-companion', 'SKILL.md');
       fs.mkdirSync(path.dirname(skillPath), { recursive: true });
       fs.writeFileSync(skillPath, readBundledSkill(), 'utf8');
     },
-    disconnect() {
+    disconnect: () => {
       const codexDir = path.join(HOME, '.codex');
       removeFencedBlock(path.join(codexDir, 'config.toml'), TOML_START, TOML_END);
       const hooksPath = path.join(codexDir, 'hooks.json');
       if (exists(hooksPath)) {
         const data = readJsonSafe(hooksPath);
-        if (data.hooks) {
-          for (const key of Object.keys(data.hooks)) {
-            data.hooks[key] = removeAiPetHookGroups(data.hooks[key]);
-            if (data.hooks[key].length === 0) delete data.hooks[key];
+        const hooks = data.hooks as Record<string, unknown> | undefined;
+        if (hooks) {
+          for (const key of Object.keys(hooks)) {
+            const next = removeAiPetHookGroups(hooks[key]);
+            if (next.length === 0) delete hooks[key];
+            else hooks[key] = next;
           }
         }
         writeJsonSafe(hooksPath, data);
@@ -392,58 +423,61 @@ PET_SOURCE = "codex"`;
     name: 'Claude Code',
     description: 'Automatic Claude Code lifecycle hooks (thinking, tool use, permission prompts, done) & MCP server.',
     files: ['~/.claude/settings.json', '~/.claude.json'],
-    detect() {
-      return exists(path.join(HOME, '.claude')) || exists(path.join(HOME, '.claude.json'));
-    },
-    isConnected() {
+    detect: () => exists(path.join(HOME, '.claude')) || exists(path.join(HOME, '.claude.json')),
+    isConnected: () => {
       const settings = readJsonSafe(path.join(HOME, '.claude', 'settings.json'));
       const claudeJson = readJsonSafe(path.join(HOME, '.claude.json'));
-      return Boolean(claudeJson?.mcpServers?.['ai-desktop-pet'] || hasAiPetHookInObj(settings?.hooks));
+      const mcpServers = (claudeJson.mcpServers as Record<string, unknown> | undefined) || {};
+      return Boolean(mcpServers['ai-desktop-pet'] || hasAiPetHookInObj(settings.hooks));
     },
-    connect() {
+    connect: () => {
       ensureRuntimeInstalled();
       const settingsPath = path.join(HOME, '.claude', 'settings.json');
       const settings = readJsonSafe(settingsPath);
-      settings.hooks = settings.hooks || {};
+      const hooks = (settings.hooks as Record<string, unknown> | undefined) || {};
       const hookCmd = `PET_SOURCE=claude-code "${RUNNER_BIN}" "${AGENT_HOOK_SCRIPT}"`;
 
-      settings.hooks.UserPromptSubmit = mergeHookGroups(settings.hooks.UserPromptSubmit, {
+      hooks.UserPromptSubmit = mergeHookGroups(hooks.UserPromptSubmit, {
         hooks: [{ type: 'command', command: hookCmd, timeout: 5 }],
       });
-      settings.hooks.PreToolUse = mergeHookGroups(settings.hooks.PreToolUse, {
+      hooks.PreToolUse = mergeHookGroups(hooks.PreToolUse, {
         matcher: '.*',
         hooks: [{ type: 'command', command: hookCmd, timeout: 5 }],
       });
-      settings.hooks.PermissionRequest = mergeHookGroups(settings.hooks.PermissionRequest, {
+      hooks.PermissionRequest = mergeHookGroups(hooks.PermissionRequest, {
         matcher: '.*',
         hooks: [{ type: 'command', command: hookCmd, timeout: 5 }],
       });
-      settings.hooks.Notification = mergeHookGroups(settings.hooks.Notification, {
+      hooks.Notification = mergeHookGroups(hooks.Notification, {
         hooks: [{ type: 'command', command: hookCmd, timeout: 5 }],
       });
-      settings.hooks.Stop = mergeHookGroups(settings.hooks.Stop, {
+      hooks.Stop = mergeHookGroups(hooks.Stop, {
         hooks: [{ type: 'command', command: hookCmd, timeout: 5 }],
       });
+      settings.hooks = hooks;
       writeJsonSafe(settingsPath, settings);
 
       const claudeJsonPath = path.join(HOME, '.claude.json');
       const claudeJson = readJsonSafe(claudeJsonPath);
-      claudeJson.mcpServers = claudeJson.mcpServers || {};
-      claudeJson.mcpServers['ai-desktop-pet'] = {
+      const mcpServers = (claudeJson.mcpServers as Record<string, unknown> | undefined) || {};
+      mcpServers['ai-desktop-pet'] = {
         command: RUNNER_BIN,
         args: [MCP_SCRIPT],
         env: { PET_SOURCE: 'claude-code' },
       };
+      claudeJson.mcpServers = mcpServers;
       writeJsonSafe(claudeJsonPath, claudeJson);
     },
-    disconnect() {
+    disconnect: () => {
       const settingsPath = path.join(HOME, '.claude', 'settings.json');
       if (exists(settingsPath)) {
         const settings = readJsonSafe(settingsPath);
-        if (settings.hooks) {
-          for (const key of Object.keys(settings.hooks)) {
-            settings.hooks[key] = removeAiPetHookGroups(settings.hooks[key]);
-            if (settings.hooks[key].length === 0) delete settings.hooks[key];
+        const hooks = settings.hooks as Record<string, unknown> | undefined;
+        if (hooks) {
+          for (const key of Object.keys(hooks)) {
+            const next = removeAiPetHookGroups(hooks[key]);
+            if (next.length === 0) delete hooks[key];
+            else hooks[key] = next;
           }
         }
         writeJsonSafe(settingsPath, settings);
@@ -452,14 +486,15 @@ PET_SOURCE = "codex"`;
       const claudeJsonPath = path.join(HOME, '.claude.json');
       if (exists(claudeJsonPath)) {
         const claudeJson = readJsonSafe(claudeJsonPath);
-        if (claudeJson.mcpServers) delete claudeJson.mcpServers['ai-desktop-pet'];
+        const mcpServers = claudeJson.mcpServers as Record<string, unknown> | undefined;
+        if (mcpServers) delete mcpServers['ai-desktop-pet'];
         writeJsonSafe(claudeJsonPath, claudeJson);
       }
     },
   },
 ];
 
-function getIntegrationStatuses() {
+export function getIntegrationStatuses(): IntegrationInfo[] {
   return INTEGRATIONS.map((item) => ({
     id: item.id,
     name: item.name,
@@ -470,8 +505,8 @@ function getIntegrationStatuses() {
   }));
 }
 
-function connectIntegrations(ids = []) {
-  const results = [];
+export function connectIntegrations(ids: string[] = []): IntegrationActionResult[] {
+  const results: IntegrationActionResult[] = [];
   for (const id of ids) {
     const target = INTEGRATIONS.find((i) => i.id === id);
     if (!target) continue;
@@ -479,26 +514,19 @@ function connectIntegrations(ids = []) {
       target.connect();
       results.push({ id, ok: true });
     } catch (err) {
-      results.push({ id, ok: false, error: err.message });
+      results.push({ id, ok: false, error: err instanceof Error ? err.message : String(err) });
     }
   }
   return results;
 }
 
-function disconnectIntegration(id) {
+export function disconnectIntegration(id: string): IntegrationActionResult {
   const target = INTEGRATIONS.find((i) => i.id === id);
   if (!target) return { id, ok: false, error: 'Unknown integration' };
   try {
     target.disconnect();
     return { id, ok: true };
   } catch (err) {
-    return { id, ok: false, error: err.message };
+    return { id, ok: false, error: err instanceof Error ? err.message : String(err) };
   }
 }
-
-module.exports = {
-  ensureRuntimeInstalled,
-  getIntegrationStatuses,
-  connectIntegrations,
-  disconnectIntegration,
-};

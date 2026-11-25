@@ -1,20 +1,24 @@
 {
   "name": "ai-desktop-pet",
   "version": "2.0.0",
-  "description": "Free open-source macOS floating AI companion that shows live agent thoughts, coding progress, and approval alerts across Antigravity, VS Code, Codex, and Claude Code.",
-  "main": "src/main/index.js",
+  "description": "Free open-source macOS floating AI companion (TypeScript + Electron) that shows live agent thoughts, active model, coding progress, and approval alerts across Antigravity, VS Code, Codex, and Claude Code.",
+  "main": "dist-js/main/index.js",
   "author": "AI Desktop Pet Contributors",
   "license": "MIT",
   "scripts": {
-    "start": "electron .",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.renderer.json --noEmit && tsc -p ../integrations/tsconfig.json --noEmit",
+    "compile": "tsc -p tsconfig.json && tsc -p tsconfig.renderer.json && tsc -p ../integrations/tsconfig.json && node scripts/copy-assets.mjs",
+    "start": "npm run compile && electron .",
     "generate:icon": "node scripts/generate-icon.mjs",
-    "build:mac": "electron-builder --mac",
-    "build:mac:dir": "electron-builder --mac dir"
+    "build:mac": "npm run compile && electron-builder --mac",
+    "build:mac:dir": "npm run compile && electron-builder --mac dir"
   },
   "dependencies": {},
   "devDependencies": {
+    "@types/node": "^22.15.3",
     "electron": "^35.1.5",
-    "electron-builder": "^26.0.12"
+    "electron-builder": "^26.0.12",
+    "typescript": "^5.8.3"
   },
   "build": {
     "appId": "com.aidev.ai-desktop-pet",
@@ -24,15 +28,15 @@
       "output": "dist"
     },
     "files": [
-      "src/**/*",
+      "dist-js/**/*",
       "package.json"
     ],
     "extraResources": [
       {
-        "from": "../integrations",
+        "from": "../integrations/dist",
         "to": "integrations",
         "filter": [
-          "**/*"
+          "**/*.mjs"
         ]
       },
       {

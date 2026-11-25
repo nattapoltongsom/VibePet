@@ -27,6 +27,10 @@ jobs:
         working-directory: app
         run: npm ci
 
+      - name: Typecheck TypeScript sources
+        working-directory: app
+        run: npm run typecheck
+
       - name: Generate macOS app icon
         working-directory: app
         run: npm run generate:icon
