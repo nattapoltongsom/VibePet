@@ -23,7 +23,6 @@
   "build": {
     "appId": "com.vibepet.app",
     "productName": "VibePet",
-    "compression": "maximum",
     "electronLanguages": [
       "en"
     ],

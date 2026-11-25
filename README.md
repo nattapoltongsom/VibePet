@@ -1,36 +1,36 @@
 # VibePet
 
-**ฟรี 100% & Open Source** — ตัวการ์ตูนลอยบนหน้าจอ macOS ที่ช่วยบอกว่า AI Coding Agent ของคุณกำลังทำอะไรอยู่ ใช้โมเดลไหน และส่งเสียงเตือนทันทีเมื่อรอให้คุณกด Approve
+**100% Free & Open Source** — A floating macOS desktop pet that shows what your AI coding agent is currently doing, which model is running, and chimes immediately when it needs your approval.
 
 ---
 
-## ไว้ทำอะไร?
-เวลาสั่งให้ AI เขียนโค้ดหรือรันคำสั่งแล้วสลับไปทำอย่างอื่น คุณไม่ต้องคอยสลับหน้าจอกลับมาเช็กบ่อยๆ:
-- **เห็นสถานะสดตลอดเวลา** — บอกแค่ **AI Model** และ **สิ่งที่กำลังทำอยู่** แบบกระชับ ไม่รกหน้าจอ
-- **เตือนเมื่อต้องกด Approve** — ส่งเสียง *ปิ๊ง-ป่อง* พร้อมเด้งเรียกเมื่อ AI รอคำยืนยันหรือรอคำตอบ
-- **รันหลายโปรเจกต์พร้อมกันได้** — แสดงหลายงานที่รันขนานกันได้โดยไม่ทับกัน
-- **เลือกตัวละครได้ 3 แบบ** — Cat, Robot, Dog พร้อมไอคอนสถานะบน macOS Menu Bar
-- **รองรับหลายเครื่องมือ** — Antigravity, OpenAI Codex, Claude Code และ VS Code (Copilot) เชื่อมต่ออัตโนมัติในคลิกเดียว
-- **ฟรี 100% และทำงาน Local ทั้งหมด** — ไม่มีค่าใช้จ่าย ไม่ส่งข้อมูลออกนอกเครื่อง
+## What it does
+No need to keep switching back to your IDE while your AI agent writes code or runs commands:
+- **Clean live status** — Shows only the active **AI model** and **what it's doing** right now, without screen clutter.
+- **Approval alerts** — Plays a chime and pops up immediately when the agent waits for your approval or reply.
+- **Multi-project support** — Tracks multiple concurrent tasks across projects without overwriting each other.
+- **3 switchable companions** — Cat, Robot, and Dog, with live status in the macOS Menu Bar.
+- **Works with your tools** — One-click auto-connect for Antigravity, OpenAI Codex, Claude Code, and VS Code (Copilot).
+- **100% free & local** — No fees, no telemetry, everything runs locally on your Mac.
 
 ---
 
-## ติดตั้ง (macOS Apple Silicon)
+## Install (macOS Apple Silicon)
 
-รันคำสั่งนี้ใน Terminal ครั้งเดียว (โหลดและเปิดใช้งานได้ทันทีโดยไม่ติดเตือน Move to Trash):
+Run this one-line command in Terminal (installs cleanly without macOS Gatekeeper warnings):
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/nattapoltongsom/VibePet/main/install.sh | bash
 ```
 
-จากนั้นเลือกตัวละครและกดเชื่อมต่อ AI ที่ใช้งานในหน้า Setup ได้เลย
+Then pick your companion and click to connect your installed AI tools in the setup window.
 
 ---
 
-## ถอนการติดตั้ง
-ลาก `VibePet.app` จากโฟลเดอร์ `Applications` ลง Trash (หากต้องการยกเลิกการเชื่อมต่อ IDE ให้กด **Disconnect** ในหน้า Settings ของแอปก่อนลบ)
+## Uninstall
+Drag `VibePet.app` from `Applications` to the Trash (click **Disconnect** in the app's settings first if you also want to remove IDE hooks).
 
 ---
 
 ## License
-MIT — ฟรีตลอดไป ใช้ แก้ไข และแจกต่อได้อย่างอิสระ ดูรายละเอียดที่ [LICENSE](./LICENSE)
+MIT — Free forever to use, modify, and share. See [LICENSE](./LICENSE).

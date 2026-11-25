@@ -2,16 +2,14 @@
   const { setupAPI } = window;
   const charButtons = Array.from(document.querySelectorAll<HTMLButtonElement>('.char-card'));
   const listEl = document.getElementById('integrations-list') as HTMLElement;
-  const connectBtn = document.getElementById('connect-btn') as HTMLButtonElement;
-  const skipBtn = document.getElementById('skip-btn') as HTMLButtonElement;
-  const bannerEl = document.getElementById('feedback-banner') as HTMLElement;
+  const doneBtn = document.getElementById('done-btn') as HTMLButtonElement;
 
-  const selectedIds = new Set<string>();
-
-  function showBanner(text: string): void {
-    bannerEl.textContent = text;
-    bannerEl.classList.add('visible');
-  }
+  const SHORT_NAMES: Record<string, string> = {
+    antigravity: 'Antigravity',
+    vscode: 'VS Code',
+    codex: 'Codex',
+    'claude-code': 'Claude Code',
+  };
 
   function renderCharacterSelection(activeChar: RendererCharacterType): void {
     charButtons.forEach((btn) => {
@@ -19,82 +17,56 @@
     });
   }
 
-  function renderIntegrations(integrations: RendererIntegrationInfo[], preselectDetected = false): void {
+  function renderIntegrations(integrations: RendererIntegrationInfo[]): void {
     listEl.innerHTML = '';
 
     integrations.forEach((item) => {
-      if (preselectDetected && (item.detected || item.connected)) {
-        selectedIds.add(item.id);
-      }
-
       const row = document.createElement('div');
       row.className = 'int-row';
 
-      const left = document.createElement('label');
+      const left = document.createElement('div');
       left.className = 'int-left';
 
-      const checkbox = document.createElement('input');
-      checkbox.type = 'checkbox';
-      checkbox.checked = selectedIds.has(item.id);
-      checkbox.addEventListener('change', () => {
-        if (checkbox.checked) selectedIds.add(item.id);
-        else selectedIds.delete(item.id);
-      });
-
-      const info = document.createElement('div');
-      info.className = 'int-info';
-
-      const titleRow = document.createElement('div');
-      titleRow.className = 'int-title-row';
+      const dot = document.createElement('span');
+      dot.className = item.connected
+        ? 'status-dot connected'
+        : item.detected
+          ? 'status-dot detected'
+          : 'status-dot';
 
       const nameEl = document.createElement('span');
       nameEl.className = 'int-name';
-      nameEl.textContent = item.name;
-      titleRow.appendChild(nameEl);
+      nameEl.textContent = SHORT_NAMES[item.id] || item.name;
 
-      const badge = document.createElement('span');
-      if (item.connected) {
-        badge.className = 'pill pill-connected';
-        badge.textContent = 'Connected ✓';
-      } else if (item.detected) {
-        badge.className = 'pill pill-detected';
-        badge.textContent = 'Detected';
-      } else {
-        badge.className = 'pill pill-notfound';
-        badge.textContent = 'Not detected';
-      }
-      titleRow.appendChild(badge);
+      left.appendChild(dot);
+      left.appendChild(nameEl);
 
-      const descEl = document.createElement('p');
-      descEl.className = 'int-desc';
-      descEl.textContent = item.description;
+      const toggleLabel = document.createElement('label');
+      toggleLabel.className = 'switch';
 
-      const filesEl = document.createElement('div');
-      filesEl.className = 'int-files';
-      filesEl.textContent = `Updates: ${item.files.join(', ')}`;
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.checked = item.connected;
 
-      info.appendChild(titleRow);
-      info.appendChild(descEl);
-      info.appendChild(filesEl);
-
-      left.appendChild(checkbox);
-      left.appendChild(info);
-      row.appendChild(left);
-
-      if (item.connected) {
-        const disconnectBtn = document.createElement('button');
-        disconnectBtn.type = 'button';
-        disconnectBtn.className = 'disconnect-btn';
-        disconnectBtn.textContent = 'Disconnect';
-        disconnectBtn.addEventListener('click', async () => {
+      checkbox.addEventListener('change', async () => {
+        checkbox.disabled = true;
+        if (checkbox.checked) {
+          const res = await setupAPI.connect([item.id]);
+          renderIntegrations(res.integrations);
+        } else {
           const res = await setupAPI.disconnect(item.id);
-          selectedIds.delete(item.id);
-          renderIntegrations(res.integrations, false);
-          showBanner(`Disconnected ${item.name}. Only AI Pet entries were removed.`);
-        });
-        row.appendChild(disconnectBtn);
-      }
+          renderIntegrations(res.integrations);
+        }
+      });
 
+      const slider = document.createElement('span');
+      slider.className = 'slider';
+
+      toggleLabel.appendChild(checkbox);
+      toggleLabel.appendChild(slider);
+
+      row.appendChild(left);
+      row.appendChild(toggleLabel);
       listEl.appendChild(row);
     });
   }
@@ -108,26 +80,16 @@
     });
   });
 
-  connectBtn.addEventListener('click', async () => {
-    const ids = Array.from(selectedIds);
-    if (ids.length === 0) {
-      showBanner('Select at least one AI tool above to connect.');
-      return;
-    }
-    connectBtn.disabled = true;
-    const res = await setupAPI.connect(ids);
-    connectBtn.disabled = false;
-    renderIntegrations(res.integrations, false);
-    const okCount = res.results.filter((r) => r.ok).length;
-    showBanner(`Connected ${okCount} tool(s)! Reload your IDE or open a new chat to start receiving live updates.`);
+  doneBtn.addEventListener('click', () => {
+    setupAPI.dismiss();
   });
 
-  skipBtn.addEventListener('click', () => {
-    setupAPI.dismiss();
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') setupAPI.dismiss();
   });
 
   setupAPI.getState().then(({ character, integrations }) => {
     renderCharacterSelection(character);
-    renderIntegrations(integrations, true);
+    renderIntegrations(integrations);
   });
 })();

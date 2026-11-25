@@ -6,8 +6,8 @@
   const singleTaskViewEl = document.getElementById('single-task-view') as HTMLElement;
   const taskListEl = document.getElementById('task-list') as HTMLElement;
   const bubbleTextEl = document.getElementById('bubble-text') as HTMLElement;
+  const modelPillEl = document.getElementById('model-pill') as HTMLElement;
   const modelBadgeEl = document.getElementById('model-badge') as HTMLElement;
-  const stateLabelEl = document.getElementById('state-label') as HTMLElement;
   const petZoneEl = document.getElementById('pet-zone') as HTMLElement;
   const characterHostEl = document.getElementById('character-host') as HTMLElement;
 
@@ -61,22 +61,10 @@
       const row = document.createElement('div');
       row.className = 'task-row';
 
-      const top = document.createElement('div');
-      top.className = 'task-row-top';
-
       const dot = document.createElement('span');
       const taskState: RendererPetState = task.state in STATE_LABELS ? task.state : 'idle';
       dot.className = `task-dot ${taskState}`;
-      top.appendChild(dot);
-
-      if (task.model) {
-        const modelEl = document.createElement('span');
-        modelEl.className = 'task-model';
-        modelEl.textContent = `⚡ ${task.model}`;
-        top.appendChild(modelEl);
-      }
-
-      row.appendChild(top);
+      row.appendChild(dot);
 
       const msgEl = document.createElement('div');
       msgEl.className = 'task-msg';
@@ -87,6 +75,27 @@
     }
   }
 
+  function updateModelPill(payload: RendererPetStatus): void {
+    const models: string[] = [];
+    if (Array.isArray(payload.tasks) && payload.tasks.length > 0) {
+      for (const task of payload.tasks) {
+        const m = (task.model || '').trim();
+        if (m && !models.includes(m)) models.push(m);
+      }
+    } else {
+      const m = (payload.model || '').trim();
+      if (m) models.push(m);
+    }
+
+    if (models.length > 0) {
+      modelBadgeEl.textContent = models.join(' · ');
+      modelPillEl.classList.add('visible');
+    } else {
+      modelBadgeEl.textContent = '';
+      modelPillEl.classList.remove('visible');
+    }
+  }
+
   function applyStatus(payload: RendererPetStatus, opts: { playSound?: boolean } = {}): void {
     const playSound = opts.playSound ?? true;
     clearTimers();
@@ -94,7 +103,8 @@
     const validState: RendererPetState =
       payload.state && payload.state in STATE_LABELS ? payload.state : 'idle';
     body.setAttribute('data-state', validState);
-    stateLabelEl.textContent = STATE_LABELS[validState];
+
+    updateModelPill(payload);
 
     const tasks = Array.isArray(payload.tasks) ? payload.tasks : [];
 
@@ -106,16 +116,7 @@
     } else {
       taskListEl.classList.remove('visible');
       taskListEl.innerHTML = '';
-      singleTaskViewEl.style.display = 'block';
-
-      const trimmedModel = (payload.model || '').trim();
-      if (trimmedModel) {
-        modelBadgeEl.textContent = `⚡ ${trimmedModel}`;
-        modelBadgeEl.classList.add('visible');
-      } else {
-        modelBadgeEl.textContent = '';
-        modelBadgeEl.classList.remove('visible');
-      }
+      singleTaskViewEl.style.display = 'flex';
 
       const trimmedMsg = (payload.message || '').trim();
       if (trimmedMsg) {

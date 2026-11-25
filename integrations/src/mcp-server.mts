@@ -8,6 +8,7 @@ import readline from 'readline';
 
 const PET_STATUS_URL = process.env.PET_STATUS_URL || 'http://127.0.0.1:4567/status';
 const DEFAULT_SOURCE = process.env.PET_SOURCE || 'ai-agent';
+const SESSION_ID = `mcp:${DEFAULT_SOURCE}:${process.pid}`;
 const REQUEST_TIMEOUT_MS = 1500;
 
 type PetState = 'idle' | 'thinking' | 'coding' | 'waiting' | 'success';
@@ -99,7 +100,7 @@ async function handleUpdatePetStatus(args: Record<string, unknown> = {}): Promis
     const res = await fetch(PET_STATUS_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ state, message, detail, project, model, source }),
+      body: JSON.stringify({ state, message, detail, project, model, source, sessionId: SESSION_ID }),
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
 

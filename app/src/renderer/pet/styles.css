@@ -38,25 +38,25 @@ html, body {
 /* ================= Speech Bubble ================= */
 .bubble-slot {
   width: 100%;
-  min-height: 132px;
+  min-height: 108px;
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   pointer-events: none;
 }
 
 .speech-bubble {
   position: relative;
-  max-width: 326px;
-  min-width: 150px;
-  padding: 9px 13px 10px;
-  border-radius: 16px;
-  background: rgba(18, 24, 38, 0.9);
+  max-width: 310px;
+  min-width: 120px;
+  padding: 9px 14px;
+  border-radius: 15px;
+  background: rgba(15, 23, 42, 0.88);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  border: 1.5px solid rgba(255, 255, 255, 0.16);
-  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.34), 0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+  border: 1.5px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.32), 0 0 0 1px rgba(255, 255, 255, 0.04) inset;
   color: #f8fafc;
   opacity: 0;
   transform: translateY(8px) scale(0.92);
@@ -74,69 +74,35 @@ html, body {
 .speech-bubble::after {
   content: "";
   position: absolute;
-  bottom: -7px;
+  bottom: -6px;
   left: 50%;
   transform: translateX(-50%) rotate(45deg);
-  width: 12px;
-  height: 12px;
-  background: rgba(18, 24, 38, 0.9);
-  border-right: 1.5px solid rgba(255, 255, 255, 0.16);
-  border-bottom: 1.5px solid rgba(255, 255, 255, 0.16);
+  width: 11px;
+  height: 11px;
+  background: rgba(15, 23, 42, 0.88);
+  border-right: 1.5px solid rgba(255, 255, 255, 0.14);
+  border-bottom: 1.5px solid rgba(255, 255, 255, 0.14);
   border-bottom-right-radius: 3px;
 }
 
-.bubble-header {
+.single-task-view {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
-  margin-bottom: 5px;
-}
-
-.model-badge {
-  display: none;
-  align-items: center;
-  gap: 3px;
-  max-width: 195px;
-  padding: 1.5px 7px;
-  border-radius: 6px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 9.5px;
-  font-weight: 600;
-  color: #bae6fd;
-  background: rgba(56, 189, 248, 0.14);
-  border: 1px solid rgba(56, 189, 248, 0.24);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.model-badge.visible {
-  display: inline-flex;
-}
-
-.state-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  margin-left: auto;
-  font-size: 9.5px;
-  font-weight: 700;
-  color: rgba(226, 232, 240, 0.78);
-  white-space: nowrap;
 }
 
 .state-dot {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
+  flex-shrink: 0;
   background: var(--primary);
   box-shadow: 0 0 8px var(--primary);
 }
 
 .bubble-text {
   margin: 0;
-  font-size: 13px;
+  font-size: 12.5px;
   line-height: 1.38;
   font-weight: 600;
   color: #f8fafc;
@@ -151,7 +117,7 @@ html, body {
 .task-list {
   display: none;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
 }
 
 .task-list.visible {
@@ -160,27 +126,14 @@ html, body {
 
 .task-row {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding-bottom: 5px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.task-row:last-child {
-  padding-bottom: 0;
-  border-bottom: none;
-}
-
-.task-row-top {
-  display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   min-width: 0;
 }
 
 .task-dot {
-  width: 6px;
-  height: 6px;
+  width: 6.5px;
+  height: 6.5px;
   border-radius: 50%;
   flex-shrink: 0;
 }
@@ -191,21 +144,6 @@ html, body {
 .task-dot.waiting { background: #fbbf24; box-shadow: 0 0 6px #fbbf24; }
 .task-dot.success { background: #4ade80; box-shadow: 0 0 6px #4ade80; }
 
-.task-model {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 9.5px;
-  font-weight: 600;
-  color: #bae6fd;
-  background: rgba(56, 189, 248, 0.14);
-  border: 1px solid rgba(56, 189, 248, 0.24);
-  border-radius: 5px;
-  padding: 0.5px 5px;
-  max-width: 170px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 .task-msg {
   font-size: 12px;
   line-height: 1.32;
@@ -214,7 +152,6 @@ html, body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  padding-left: 12px;
 }
 
 body[data-state="waiting"] .speech-bubble.visible {
@@ -236,9 +173,10 @@ body[data-state="waiting"] .speech-bubble::after {
 /* ================= Pet Container & Hover Controls ================= */
 .pet-zone {
   position: relative;
-  width: 204px;
-  height: 150px;
+  width: 214px;
+  height: 168px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   pointer-events: auto;
@@ -253,6 +191,51 @@ body[data-state="waiting"] .speech-bubble::after {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* Floating Nameplate Pill under Pet */
+.model-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 204px;
+  margin-top: -6px;
+  padding: 2.5px 10px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.84);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.28), 0 0 10px var(--primary-glow);
+  opacity: 0;
+  transform: translateY(-4px) scale(0.92);
+  transition: opacity 0.22s ease, transform 0.24s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s ease;
+  pointer-events: none;
+}
+
+.model-pill.visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.model-pill-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--primary);
+  box-shadow: 0 0 6px var(--primary);
+}
+
+.model-pill-text {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: #e2e8f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .hover-controls {

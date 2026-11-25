@@ -3,56 +3,28 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>VibePet — Setup &amp; Integrations</title>
+  <title>VibePet</title>
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
   <div class="titlebar-drag"></div>
   <main class="container">
-    <header class="hero">
-      <div class="hero-badge">100% Free &amp; Open Source · Local Only</div>
-      <h1>VibePet</h1>
-      <p>Choose your floating companion and grant permission to auto-connect your installed AI coding tools.</p>
-    </header>
-
     <section class="section">
-      <h2>1. Choose Your Companion</h2>
+      <h2>Pet</h2>
       <div class="character-grid" id="character-grid">
-        <button class="char-card" data-char="cat" type="button">
-          <span class="char-emoji">🐱</span>
-          <span class="char-name">Cat</span>
-          <span class="char-sub">Playful &amp; cozy</span>
-        </button>
-        <button class="char-card" data-char="robot" type="button">
-          <span class="char-emoji">🤖</span>
-          <span class="char-name">Robot</span>
-          <span class="char-sub">Classic AI bot</span>
-        </button>
-        <button class="char-card" data-char="dog" type="button">
-          <span class="char-emoji">🐶</span>
-          <span class="char-name">Dog</span>
-          <span class="char-sub">Loyal &amp; bouncy</span>
-        </button>
+        <button class="char-card" data-char="cat" type="button">Cat</button>
+        <button class="char-card" data-char="robot" type="button">Robot</button>
+        <button class="char-card" data-char="dog" type="button">Dog</button>
       </div>
     </section>
 
     <section class="section">
-      <div class="section-head">
-        <h2>2. Connect Your AI Tools</h2>
-        <span class="consent-pill">🔒 Permission Required</span>
-      </div>
-      <p class="hint">
-        Select the tools you want VibePet to connect with. Existing settings are preserved — only the
-        <code>ai-desktop-pet</code> hook &amp; MCP entries are added, and you can disconnect anytime.
-      </p>
+      <h2>Tools</h2>
       <div id="integrations-list" class="integrations-list"></div>
     </section>
 
-    <div id="feedback-banner" class="feedback-banner"></div>
-
-    <footer class="actions">
-      <button id="skip-btn" class="btn btn-secondary" type="button">Done / Not Now</button>
-      <button id="connect-btn" class="btn btn-primary" type="button">Allow &amp; Connect Selected</button>
+    <footer class="footer">
+      <button id="done-btn" class="btn-done" type="button">Done</button>
     </footer>
   </main>
 

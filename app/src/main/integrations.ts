@@ -240,7 +240,7 @@ const INTEGRATIONS: IntegrationAdapter[] = [
         PreInvocation: [{ type: 'command', command: hookCmd, timeout: 5 }],
         PreToolUse: [
           {
-            matcher: 'run_command|write_file|edit_file|ask_question',
+            matcher: 'run_command|read_file|write_file|edit_file|ask_question',
             hooks: [{ type: 'command', command: hookCmd, timeout: 5 }],
           },
         ],
@@ -316,7 +316,7 @@ const INTEGRATIONS: IntegrationAdapter[] = [
       fs.mkdirSync(path.dirname(promptPath), { recursive: true });
       fs.writeFileSync(
         promptPath,
-        `---\ndescription: "Report agent status, thoughts, and approval alerts to AI Desktop Pet via update_pet_status"\napplyTo: "**"\n---\n\n# AI Desktop Pet Companion\n\nWhen the \`update_pet_status\` MCP tool is available, call it at major workflow milestones (\`thinking\`, \`coding\`, \`waiting\`, \`success\`) with \`source: "vscode"\`, a short \`message\` (under 15 words), and a concise \`detail\` explaining what you are analyzing, editing, or waiting to approve.\n`,
+        `---\ndescription: "Report live agent status, active model, and approval alerts to VibePet via update_pet_status"\napplyTo: "**"\n---\n\n# VibePet Companion\n\nWhenever the \`update_pet_status\` MCP tool is available:\n- Call it with \`state: "thinking"\` when starting to analyze a request.\n- Call it with \`state: "coding"\` when editing files or running terminal commands.\n- Call it with \`state: "waiting"\` before asking the user a question or waiting for approval.\n- Call it with \`state: "success"\` when the task is complete.\n- Always include your \`model\` name and a short \`message\` (under 8 words) describing what you are currently doing. Leave \`detail\` empty.\n`,
         'utf8'
       );
 

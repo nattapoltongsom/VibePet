@@ -11,13 +11,13 @@ export function openSetupWindow(): BrowserWindow {
   }
 
   setupWindow = new BrowserWindow({
-    width: 600,
-    height: 670,
+    width: 330,
+    height: 344,
     resizable: false,
     minimizable: false,
     maximizable: false,
     fullscreenable: false,
-    title: 'VibePet — Setup & Integrations',
+    title: 'VibePet',
     titleBarStyle: 'hiddenInset',
     vibrancy: 'under-window',
     visualEffectState: 'active',

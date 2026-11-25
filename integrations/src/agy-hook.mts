@@ -167,6 +167,22 @@ function mapEvent(payload: HookPayload): HookResult {
       };
     }
 
+    if (toolLower === 'read_file') {
+      const targetPath = args.Path || args.path || '';
+      if (isOutsideWorkspace(targetPath, payload)) {
+        const base = compact(path.basename(String(targetPath)), 32);
+        return {
+          status: {
+            state: 'waiting',
+            message: base ? `Approve read: ${base}` : 'Approval needed to read file!',
+            project,
+          },
+          output: { decision: 'ask' },
+        };
+      }
+      return { status: null, output: { decision: 'allow' } };
+    }
+
     if (toolLower === 'write_file' || toolLower === 'edit_file') {
       const targetPath = args.Path || args.path || '';
       const rel = extractRelativePath(targetPath, cwd);
